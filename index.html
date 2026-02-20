@@ -3,27 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Pro</title>
+    <title>Finance Pro - Gestor Inteligente</title>
     
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        body { background: #0f172a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.1); }
-        .mono { font-family: monospace; }
-        .slide-up { animation: slideUp 0.4s ease; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .slide-up {
+            animation: slideUp 0.4s ease;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .ai-message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .ai-user {
+            background: #6366f1;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .ai-bot {
+            background: #1e293b;
+            color: #e2e8f0;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #334155;
+        }
+        
+        .percentage-bar {
+            transition: width 0.5s ease;
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .saving-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            font-size: 12px;
+            color: #94a3b8;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
     </style>
 </head>
 <body class="min-h-screen">
 
-    <!-- SUAS CREDENCIAIS DO FIREBASE -->
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBdXhpd8x26ji9F0CmBUkJ-7ob-yj7jQ1A",
@@ -38,15 +111,15 @@
         let db = null;
         let currentUser = null;
         let isOfflineMode = false;
+        let isSaving = false;
 
-        // Tenta conectar no Firebase
         try {
             firebase.initializeApp(firebaseConfig);
             auth = firebase.auth();
             db = firebase.firestore();
-            console.log("✅ Firebase conectado!");
+            console.log("Firebase conectado!");
         } catch (e) {
-            console.error("❌ Erro Firebase:", e);
+            console.error("Erro Firebase:", e);
             isOfflineMode = true;
         }
     </script>
@@ -59,16 +132,16 @@
                     <i class="fas fa-wallet text-white"></i>
                 </div>
                 <h1 class="text-3xl font-bold text-white">Finance Pro</h1>
-                <p class="text-slate-400 mt-2">Sincronização na nuvem ativada</p>
+                <p class="text-slate-400 mt-2">Gestor Inteligente com IA</p>
             </div>
 
             <div class="glass rounded-3xl p-8 slide-up">
+                <div id="errorMsg" class="hidden mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm"></div>
+
                 <div class="flex gap-4 mb-6 border-b border-slate-700 pb-4">
                     <button onclick="setAuthMode('login')" id="tab-login" class="flex-1 pb-2 text-center font-bold text-indigo-400 border-b-2 border-indigo-500">Entrar</button>
                     <button onclick="setAuthMode('register')" id="tab-register" class="flex-1 pb-2 text-center text-slate-400 border-b-2 border-transparent">Criar Conta</button>
                 </div>
-
-                <div id="errorMsg" class="hidden mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm"></div>
 
                 <form onsubmit="handleAuth(event)" class="space-y-4">
                     <div>
@@ -106,7 +179,7 @@
     </div>
 
     <!-- APP PRINCIPAL -->
-    <div id="mainApp" class="hidden min-h-screen flex-col">
+    <div id="mainApp" class="hidden min-h-screen flex-col pb-24">
         <header class="glass sticky top-0 z-40 border-b border-slate-800 p-4">
             <div class="max-w-7xl mx-auto flex justify-between items-center">
                 <div class="flex items-center gap-4">
@@ -115,55 +188,123 @@
                     </div>
                     <div>
                         <h1 class="font-bold text-lg text-white">Finance Pro</h1>
-                        <p class="text-xs text-slate-400">Olá, <span id="displayUserName">Usuário</span> 
-                            <span id="cloudStatus" class="ml-2 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] hidden">☁️ Nuvem</span>
+                        <p class="text-xs text-slate-400 flex items-center gap-2">
+                            Olá, <span id="displayUserName">Usuário</span>
+                            <span id="saveStatus" class="hidden text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">
+                                <i class="fas fa-check"></i> Salvo
+                            </span>
                         </p>
                     </div>
                 </div>
-                <button onclick="logout()" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-red-900/30 flex items-center justify-center text-slate-400 hover:text-red-400 transition">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="toggleAIChat()" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-indigo-600 flex items-center justify-center text-slate-400 hover:text-white transition">
+                        <i class="fas fa-robot"></i>
+                    </button>
+                    <button onclick="logout()" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-red-900/30 flex items-center justify-center text-slate-400 hover:text-red-400 transition">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
             </div>
         </header>
 
-        <main class="flex-1 max-w-7xl mx-auto w-full p-4 space-y-6 pb-24">
-            <!-- Cards -->
+        <main class="flex-1 max-w-7xl mx-auto w-full p-4 space-y-6">
+            
+            <!-- RESUMO DO MÊS -->
+            <div class="glass rounded-2xl p-4 border border-indigo-500/30 bg-indigo-500/5">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-indigo-400 font-bold text-sm uppercase tracking-wider">Mês Atual</h3>
+                    <span id="currentMonthLabel" class="text-xs text-slate-400">Fevereiro 2026</span>
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                        <p class="text-xs text-slate-400">Orçamento</p>
+                        <p id="monthBudgetDisplay" class="text-lg font-bold text-white">R$ 0,00</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400">Gasto</p>
+                        <p id="monthSpentDisplay" class="text-lg font-bold text-rose-400">R$ 0,00</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400">Restante</p>
+                        <p id="monthRemainingDisplay" class="text-lg font-bold text-emerald-400">R$ 0,00</p>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="flex justify-between text-xs text-slate-400 mb-1">
+                        <span>Progresso do mês</span>
+                        <span id="monthProgressPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded-full h-2">
+                        <div id="monthProgressBar" class="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARDS PRINCIPAIS -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="glass rounded-2xl p-6 border-l-4 border-blue-500">
-                    <p class="text-slate-400 text-sm uppercase">Saldo na Conta</p>
-                    <h2 id="bankBalance" class="text-3xl font-bold text-white mono mt-2">R$ 0,00</h2>
+                    <p class="text-slate-400 text-sm uppercase">Saldo Bancário</p>
+                    <h2 id="bankBalance" class="text-3xl font-bold text-white mt-2">R$ 0,00</h2>
+                    <p class="text-xs text-slate-500 mt-2">Dinheiro real disponível</p>
                 </div>
                 
                 <div class="glass rounded-2xl p-6 border-l-4 border-purple-500">
                     <div class="flex justify-between items-start">
                         <div>
                             <p class="text-slate-400 text-sm uppercase">Posso Gastar</p>
-                            <h2 id="monthlyBudget" class="text-3xl font-bold text-white mono mt-2">R$ 0,00</h2>
+                            <h2 id="monthlyBudget" class="text-3xl font-bold text-white mt-2">R$ 0,00</h2>
                         </div>
                         <button onclick="editBudgetLimit()" class="text-purple-400 hover:text-purple-300">
                             <i class="fas fa-edit"></i>
                         </button>
                     </div>
-                    <div class="mt-4">
-                        <div class="w-full bg-slate-700 rounded-full h-2">
-                            <div id="budgetBar" class="h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all" style="width: 0%"></div>
-                        </div>
-                    </div>
+                    <p class="text-xs text-slate-500 mt-2">Reseta todo mês</p>
                 </div>
 
                 <div class="glass rounded-2xl p-6 border-l-4 border-emerald-500">
-                    <p class="text-slate-400 text-sm uppercase">Economia</p>
-                    <h2 id="monthSavings" class="text-3xl font-bold text-white mono mt-2">R$ 0,00</h2>
+                    <p class="text-slate-400 text-sm uppercase">Economia Total</p>
+                    <h2 id="totalSavings" class="text-3xl font-bold text-white mt-2">R$ 0,00</h2>
+                    <p id="savingsPercent" class="text-xs text-emerald-400 mt-2">0% da renda</p>
                 </div>
             </div>
 
-            <!-- Botões -->
+            <!-- ANÁLISE E ESTIMATIVAS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="glass rounded-2xl p-5">
+                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fas fa-chart-pie text-indigo-400"></i> Distribuição %
+                    </h3>
+                    <div id="categoryPercentages" class="space-y-3">
+                        <!-- Injetado via JS -->
+                    </div>
+                </div>
+
+                <div class="glass rounded-2xl p-5">
+                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fas fa-brain text-purple-400"></i> Estimativa IA
+                    </h3>
+                    <div id="aiEstimate" class="space-y-3 text-sm text-slate-300">
+                        <p class="text-slate-400">Faça transações para ver estimativas...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DICAS DE INVESTIMENTO -->
+            <div id="investmentTips" class="hidden glass rounded-2xl p-5 border border-yellow-500/30 bg-yellow-500/5">
+                <h3 class="font-bold text-yellow-400 mb-3 flex items-center gap-2">
+                    <i class="fas fa-lightbulb"></i> Dicas de Investimento
+                </h3>
+                <div id="investmentContent" class="text-sm text-slate-300 space-y-2"></div>
+            </div>
+
+            <!-- BOTÕES AÇÃO -->
             <div class="grid grid-cols-2 gap-4">
                 <button onclick="openTransactionModal('income')" class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl hover:bg-emerald-500/20 transition text-left">
                     <div class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-3">
                         <i class="fas fa-arrow-down"></i>
                     </div>
                     <p class="font-bold text-emerald-400">Recebi Dinheiro</p>
+                    <p class="text-xs text-slate-500 mt-1">+ Saldo Bancário</p>
                 </button>
                 
                 <button onclick="openTransactionModal('expense')" class="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl hover:bg-rose-500/20 transition text-left">
@@ -171,28 +312,85 @@
                         <i class="fas fa-arrow-up"></i>
                     </div>
                     <p class="font-bold text-rose-400">Gastei Dinheiro</p>
+                    <p class="text-xs text-slate-500 mt-1">- Orçamento Mensal</p>
                 </button>
             </div>
 
-            <!-- Categorias -->
+            <!-- CATEGORIAS COM % -->
             <div class="glass rounded-2xl p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-white">Limite por Categoria</h3>
+                    <h3 class="font-bold text-white">Controle por Categoria</h3>
                     <button onclick="openAddCategory()" class="px-3 py-1.5 bg-indigo-600 rounded-lg text-white text-sm">
                         <i class="fas fa-plus"></i> Nova
                     </button>
                 </div>
                 <div id="budgetCategoriesList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             </div>
+
+            <!-- HISTÓRICO -->
+            <div class="glass rounded-2xl p-6">
+                <h3 class="font-bold text-white mb-4">Últimas Movimentações</h3>
+                <div id="recentTransactions" class="space-y-3 max-h-96 overflow-y-auto"></div>
+            </div>
+
+            <!-- HISTÓRICO MENSAL -->
+            <div class="glass rounded-2xl p-6">
+                <h3 class="font-bold text-white mb-4">Histórico Mensal</h3>
+                <div id="monthlyHistory" class="space-y-3"></div>
+            </div>
         </main>
     </div>
 
-    <!-- Modais -->
+    <!-- CHAT IA -->
+    <div id="aiChatModal" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm">
+        <div class="glass rounded-t-2xl sm:rounded-2xl w-full sm:w-full sm:max-w-2xl h-[80vh] sm:h-[600px] flex flex-col slide-up border border-slate-700">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-indigo-600/20 rounded-t-2xl">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center">
+                        <i class="fas fa-robot text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-white">Assistente Financeiro</h3>
+                        <p class="text-xs text-indigo-300">Análise em tempo real</p>
+                    </div>
+                </div>
+                <button onclick="toggleAIChat()" class="text-slate-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="aiMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                <div class="ai-message ai-bot">
+                    <b>Olá!</b> Sou seu assistente financeiro. Posso analisar seus gastos e dar dicas personalizadas.<br><br>
+                    Exemplos:<br>
+                    • "Analise meus gastos deste mês"<br>
+                    • "Onde posso economizar?"<br>
+                    • "Como investir meu dinheiro?"
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-700 bg-slate-900/50">
+                <div class="flex gap-2 mb-3 overflow-x-auto pb-2">
+                    <button onclick="askAI('Analise meus gastos')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-full text-xs text-slate-300 whitespace-nowrap">Analisar gastos</button>
+                    <button onclick="askAI('Dicas de economia')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-full text-xs text-slate-300 whitespace-nowrap">Como economizar</button>
+                    <button onclick="askAI('Onde investir?')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-full text-xs text-slate-300 whitespace-nowrap">Investimentos</button>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="aiInput" placeholder="Digite sua pergunta..." class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none" onkeypress="if(event.key==='Enter')sendAIMessage()">
+                    <button onclick="sendAIMessage()" class="px-6 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-medium transition">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAIS -->
     <div id="transactionModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="glass rounded-2xl p-6 w-full max-w-md slide-up border border-slate-700">
+        <div class="glass rounded-2xl p-6 w-full max-w-md slide-up">
             <h3 id="transModalTitle" class="text-xl font-bold text-white mb-4">Registrar</h3>
             <form onsubmit="saveTransaction(event)" class="space-y-4">
-                <input type="number" id="transAmount" step="0.01" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-2xl font-bold mono focus:border-indigo-500 outline-none" placeholder="R$ 0,00">
+                <input type="number" id="transAmount" step="0.01" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-2xl font-bold focus:border-indigo-500 outline-none" placeholder="R$ 0,00">
                 <input type="text" id="transDesc" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none" placeholder="Descrição">
                 <div id="categorySelection" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto"></div>
                 <input type="hidden" id="transCategory" required>
@@ -204,32 +402,36 @@
     </div>
 
     <div id="budgetLimitModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="glass rounded-2xl p-6 w-full max-w-md slide-up border border-slate-700">
-            <h3 class="text-xl font-bold text-white mb-4">Limite Mensal Geral</h3>
-            <input type="number" id="budgetLimitInput" step="0.01" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-2xl font-bold mono focus:border-indigo-500 outline-none mb-4" placeholder="0,00">
+        <div class="glass rounded-2xl p-6 w-full max-w-md slide-up">
+            <h3 class="text-xl font-bold text-white mb-2">Definir Orçamento Mensal</h3>
+            <p class="text-slate-400 text-sm mb-4">Este valor reseta no início de cada mês</p>
+            <input type="number" id="budgetLimitInput" step="0.01" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-2xl font-bold focus:border-indigo-500 outline-none mb-4" placeholder="0,00">
+            <div class="bg-slate-800/50 p-3 rounded-lg mb-4">
+                <p class="text-xs text-slate-400">Sugestão baseada na média: <span id="suggestedBudget" class="text-indigo-400 cursor-pointer hover:underline" onclick="useSuggestedBudget()">R$ 0,00</span></p>
+            </div>
             <button onclick="saveBudgetLimit()" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl">Salvar</button>
         </div>
     </div>
 
     <div id="editCategoryModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="glass rounded-2xl p-6 w-full max-w-md slide-up border border-slate-700">
+        <div class="glass rounded-2xl p-6 w-full max-w-md slide-up">
             <h3 class="text-xl font-bold text-white mb-4">Editar Categoria</h3>
             <input type="hidden" id="editCategoryId">
             <input type="text" id="editCategoryName" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none mb-4" placeholder="Nome">
-            <input type="number" id="editCategoryLimit" step="0.01" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold mono focus:border-indigo-500 outline-none mb-4" placeholder="Limite R$">
+            <input type="number" id="editCategoryLimit" step="0.01" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold focus:border-indigo-500 outline-none mb-4" placeholder="Limite mensal R$">
             <div class="flex gap-3">
-                <button onclick="closeEditCategoryModal()" class="flex-1 py-3 border border-slate-600 text-slate-300 rounded-xl">Cancelar</button>
+                <button onclick="document.getElementById('editCategoryModal').classList.add('hidden')" class="flex-1 py-3 border border-slate-600 text-slate-300 rounded-xl">Cancelar</button>
                 <button onclick="saveCategoryEdit()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Salvar</button>
             </div>
         </div>
     </div>
 
     <div id="categoryModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="glass rounded-2xl p-6 w-full max-w-md slide-up border border-slate-700">
+        <div class="glass rounded-2xl p-6 w-full max-w-md slide-up">
             <h3 class="text-xl font-bold text-white mb-4">Nova Categoria</h3>
             <form onsubmit="saveCategory(event)" class="space-y-4">
                 <input type="text" id="newCatName" required placeholder="Nome" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none">
-                <input type="number" id="newCatLimit" step="0.01" required placeholder="Limite R$" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none">
+                <input type="number" id="newCatLimit" step="0.01" required placeholder="Limite mensal R$" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none">
                 <div class="flex gap-2">
                     <button type="button" onclick="selectCatColor('red')" class="color-btn w-10 h-10 rounded-full bg-red-500 ring-2 ring-offset-2 ring-offset-slate-800 ring-transparent" data-color="red"></button>
                     <button type="button" onclick="selectCatColor('blue')" class="color-btn w-10 h-10 rounded-full bg-blue-500 ring-2 ring-offset-2 ring-offset-slate-800 ring-indigo-500" data-color="blue"></button>
@@ -243,12 +445,16 @@
         </div>
     </div>
 
+    <div id="savingIndicator" class="saving-indicator hidden">
+        <i class="fas fa-sync fa-spin"></i>
+        <span>Salvando...</span>
+    </div>
+
     <script>
-        // DADOS
+        // ESTRUTURA DE DADOS MELHORADA
         let userData = {
             name: 'Usuário',
             wallet: {
-                bankBalance: 0,
                 monthlyBudgetLimit: 0,
                 categories: [
                     { id: 'cat_1', name: 'Moradia', color: 'blue', limit: 0 },
@@ -257,65 +463,560 @@
                     { id: 'cat_4', name: 'Lazer', color: 'purple', limit: 0 },
                     { id: 'cat_5', name: 'Saúde', color: 'red', limit: 0 },
                 ],
-                transactions: []
+                transactions: [],
+                monthlyHistory: {} // Histórico por mês: { "2026-02": { budget: 1000, spent: 500, savings: 200 } }
             }
         };
+        
         let authMode = 'login';
-        let currentChart = null;
+        let currentMonth = new Date().toISOString().slice(0, 7); // "2026-02"
 
-        // AUTH LISTENERS
+        // AUTH
         if (auth) {
-            auth.onAuthStateChanged(user => {
+            auth.onAuthStateChanged(async user => {
                 if (user) {
                     currentUser = user;
                     document.getElementById('authScreen').classList.add('hidden');
                     document.getElementById('mainApp').classList.remove('hidden');
                     document.getElementById('displayUserName').textContent = user.displayName || user.email.split('@')[0];
-                    document.getElementById('cloudStatus').classList.remove('hidden');
                     
-                    // Carrega dados do Firestore
-                    loadUserData(user.uid);
+                    // Carrega dados
+                    await loadUserData(user.uid);
                 }
             });
         }
 
         async function loadUserData(uid) {
-            if (!db) return;
+            if (!db) {
+                // Modo offline - carrega do localStorage
+                const local = localStorage.getItem('finance_pro_data');
+                if (local) userData = JSON.parse(local);
+                checkMonthlyReset();
+                updateUI();
+                return;
+            }
+
             try {
                 const doc = await db.collection('users').doc(uid).get();
                 if (doc.exists) {
                     const data = doc.data();
+                    // Merge mantendo estrutura
                     userData = { ...userData, ...data };
-                    if (data.name) userData.name = data.name;
+                    if (data.wallet) userData.wallet = { ...userData.wallet, ...data.wallet };
+                    
+                    // Verifica se mudou o mês e reseta
+                    checkMonthlyReset();
+                    updateUI();
                 } else {
-                    // Primeira vez - cria documento
+                    // Primeiro login - cria documento
                     await db.collection('users').doc(uid).set(userData);
+                    updateUI();
                 }
-                updateUI();
             } catch (error) {
-                console.error("Erro ao carregar dados:", error);
-                showError("Erro ao carregar dados da nuvem. Verifique sua conexão.");
+                console.error("Erro ao carregar:", error);
+                // Fallback para local
+                const local = localStorage.getItem('finance_pro_data');
+                if (local) userData = JSON.parse(local);
+                updateUI();
             }
         }
 
-        async function saveToCloud() {
-            if (!db || !currentUser) {
-                localStorage.setItem('finance_pro_backup', JSON.stringify(userData));
+        // VERIFICAÇÃO DE RESET MENSAL
+        function checkMonthlyReset() {
+            const now = new Date();
+            const currentMonthStr = now.toISOString().slice(0, 7); // "2026-02"
+            const lastMonth = userData.wallet.lastMonth || currentMonthStr;
+            
+            if (lastMonth !== currentMonthStr) {
+                // MUDOU O MÊS! Salvar histórico do mês anterior
+                const lastMonthData = calculateMonthData(lastMonth);
+                if (!userData.wallet.monthlyHistory) userData.wallet.monthlyHistory = {};
+                userData.wallet.monthlyHistory[lastMonth] = lastMonthData;
+                
+                // Resetar gastos do mês (mas manter transações no histórico)
+                userData.wallet.lastMonth = currentMonthStr;
+                
+                // Notifica usuário
+                alert(`🎉 Novo mês detectado! Seu orçamento de ${formatMoney(userData.wallet.monthlyBudgetLimit)} foi renovado. Dados de ${lastMonth} salvos no histórico.`);
+            }
+            
+            // Atualiza label do mês atual
+            const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            document.getElementById('currentMonthLabel').textContent = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+            currentMonth = currentMonthStr;
+        }
+
+        function calculateMonthData(monthStr) {
+            const [year, month] = monthStr.split('-').map(Number);
+            const transactions = userData.wallet.transactions.filter(t => {
+                const d = new Date(t.date);
+                return d.getFullYear() === year && d.getMonth() === month - 1;
+            });
+            
+            const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+            const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+            
+            return {
+                budget: userData.wallet.monthlyBudgetLimit,
+                income: income,
+                expense: expense,
+                savings: income - expense,
+                date: monthStr
+            };
+        }
+
+        // SAVE ROBUSTO
+        async function saveData() {
+            showSaving(true);
+            
+            // Sempre salva local primeiro (backup)
+            localStorage.setItem('finance_pro_data', JSON.stringify(userData));
+            
+            // Se online, salva na nuvem
+            if (db && currentUser) {
+                try {
+                    await db.collection('users').doc(currentUser.uid).update({
+                        wallet: userData.wallet,
+                        name: userData.name,
+                        lastUpdate: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastMonth: currentMonth
+                    });
+                    showSaving(false, true);
+                } catch (error) {
+                    console.error("Erro ao salvar na nuvem:", error);
+                    showSaving(false, false);
+                    // Mantém no local - quando voltar online sincroniza
+                }
+            } else {
+                showSaving(false, true);
+            }
+        }
+
+        function showSaving(saving, success) {
+            const indicator = document.getElementById('savingIndicator');
+            const status = document.getElementById('saveStatus');
+            
+            if (saving) {
+                indicator.classList.remove('hidden');
+            } else {
+                indicator.classList.add('hidden');
+                if (success) {
+                    status.classList.remove('hidden');
+                    setTimeout(() => status.classList.add('hidden'), 2000);
+                }
+            }
+        }
+
+        // UI PRINCIPAL
+        function updateUI() {
+            const w = userData.wallet;
+            const now = new Date();
+            
+            // Calcula totais
+            const totalIncome = w.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const totalExpense = w.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            const bankBalance = totalIncome - totalExpense;
+            
+            // Calcula mês atual especificamente
+            const currentMonthTrans = w.transactions.filter(t => {
+                const d = new Date(t.date);
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            });
+            
+            const monthIncome = currentMonthTrans.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+            const monthExpense = currentMonthTrans.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+            const monthRemaining = w.monthlyBudgetLimit - monthExpense;
+            
+            // Atualiza cards principais
+            document.getElementById('bankBalance').textContent = `R$ ${formatMoney(bankBalance)}`;
+            document.getElementById('monthlyBudget').textContent = `R$ ${formatMoney(monthRemaining)}`;
+            document.getElementById('totalSavings').textContent = `R$ ${formatMoney(bankBalance)}`;
+            
+            // Header do mês
+            document.getElementById('monthBudgetDisplay').textContent = `R$ ${formatMoney(w.monthlyBudgetLimit)}`;
+            document.getElementById('monthSpentDisplay').textContent = `R$ ${formatMoney(monthExpense)}`;
+            document.getElementById('monthRemainingDisplay').textContent = `R$ ${formatMoney(monthRemaining)}`;
+            
+            // % de gastos
+            const percentUsed = w.monthlyBudgetLimit > 0 ? (monthExpense / w.monthlyBudgetLimit) * 100 : 0;
+            document.getElementById('monthProgressPercent').textContent = `${percentUsed.toFixed(1)}%`;
+            document.getElementById('monthProgressBar').style.width = `${Math.min(percentUsed, 100)}%`;
+            
+            // % da renda economizada
+            const savingsPercent = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
+            document.getElementById('savingsPercent').textContent = `${savingsPercent.toFixed(1)}% da renda`;
+            
+            // Renderiza componentes
+            renderCategoriesWithPercent();
+            renderRecentTransactions();
+            renderMonthlyHistory();
+            renderAIEstimate();
+            renderInvestmentTips(monthIncome, monthExpense, bankBalance);
+            
+            // Salva automaticamente
+            saveData();
+        }
+
+        function renderCategoriesWithPercent() {
+            const now = new Date();
+            const container = document.getElementById('budgetCategoriesList');
+            const percentContainer = document.getElementById('categoryPercentages');
+            
+            // Calcula gastos por categoria no mês atual
+            const spending = {};
+            let totalMonthExpense = 0;
+            
+            userData.wallet.transactions.forEach(t => {
+                const d = new Date(t.date);
+                if (t.type === 'expense' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+                    spending[t.category] = (spending[t.category] || 0) + t.amount;
+                    totalMonthExpense += t.amount;
+                }
+            });
+            
+            // Render lista principal
+            container.innerHTML = userData.wallet.categories.map(c => {
+                const spent = spending[c.id] || 0;
+                const percentOfLimit = c.limit > 0 ? (spent / c.limit) * 100 : 0;
+                const percentOfTotal = totalMonthExpense > 0 ? (spent / totalMonthExpense) * 100 : 0;
+                const remaining = c.limit - spent;
+                
+                return `
+                    <div class="glass p-4 rounded-xl border border-slate-700 relative group">
+                        <button onclick="openEditCategory('${c.id}')" class="absolute top-3 right-3 w-8 h-8 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white flex items-center justify-center transition opacity-0 group-hover:opacity-100">
+                            <i class="fas fa-edit text-sm"></i>
+                        </button>
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-${c.color}-500"></div>
+                                <span class="font-bold text-white">${c.name}</span>
+                            </div>
+                            <span class="text-xs text-slate-400">${percentOfTotal.toFixed(1)}% do total</span>
+                        </div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-400">Gasto: <span class="text-white font-bold">R$ ${formatMoney(spent)}</span></span>
+                            <span class="text-slate-400">Limite: <span class="text-indigo-400 font-bold">R$ ${formatMoney(c.limit)}</span></span>
+                        </div>
+                        <div class="w-full bg-slate-700 rounded-full h-2 mb-1">
+                            <div class="h-full rounded-full percentage-bar ${percentOfLimit > 100 ? 'bg-red-500' : percentOfLimit > 80 ? 'bg-yellow-500' : 'bg-' + c.color + '-500'}" style="width: ${Math.min(percentOfLimit, 100)}%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="${remaining < 0 ? 'text-red-400' : 'text-slate-500'}">${remaining < 0 ? `Estourou R$ ${formatMoney(Math.abs(remaining))}` : `Restam R$ ${formatMoney(remaining)}`}</span>
+                            <span class="text-slate-500">${percentOfLimit.toFixed(0)}% usado</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Render porcentagens simplificadas
+            percentContainer.innerHTML = userData.wallet.categories.map(c => {
+                const spent = spending[c.id] || 0;
+                const percent = totalMonthExpense > 0 ? (spent / totalMonthExpense) * 100 : 0;
+                if (spent === 0) return '';
+                
+                return `
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-2 rounded-full bg-${c.color}-500"></div>
+                        <div class="flex-1">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-slate-300">${c.name}</span>
+                                <span class="text-white font-bold">${percent.toFixed(1)}%</span>
+                            </div>
+                            <div class="w-full bg-slate-700 rounded-full h-1.5">
+                                <div class="h-full rounded-full bg-${c.color}-500" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                        <span class="text-xs text-slate-400 w-16 text-right">R$ ${formatMoney(spent)}</span>
+                    </div>
+                `;
+            }).join('') || '<p class="text-slate-500 text-sm">Nenhum gasto registrado este mês</p>';
+        }
+
+        function renderAIEstimate() {
+            const now = new Date();
+            const container = document.getElementById('aiEstimate');
+            
+            // Calcula média diária
+            const dayOfMonth = now.getDate();
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const remainingDays = daysInMonth - dayOfMonth;
+            
+            const currentMonthExpenses = userData.wallet.transactions.filter(t => {
+                const d = new Date(t.date);
+                return t.type === 'expense' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            }).reduce((s, t) => s + t.amount, 0);
+            
+            const avgDaily = dayOfMonth > 0 ? currentMonthExpenses / dayOfMonth : 0;
+            const projectedTotal = avgDaily * daysInMonth;
+            const remainingBudget = userData.wallet.monthlyBudgetLimit - currentMonthExpenses;
+            const status = remainingBudget < 0 ? 'estourado' : projectedTotal > userData.wallet.monthlyBudgetLimit ? 'alerta' : 'ok';
+            
+            let html = '';
+            
+            if (userData.wallet.monthlyBudgetLimit === 0) {
+                html = '<p class="text-yellow-400">⚠️ Defina um orçamento mensal para ver estimativas</p>';
+            } else {
+                html = `
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Média diária:</span>
+                            <span class="text-white font-bold">R$ ${formatMoney(avgDaily)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Projeção mês:</span>
+                            <span class="${projectedTotal > userData.wallet.monthlyBudgetLimit ? 'text-red-400' : 'text-emerald-400'} font-bold">R$ ${formatMoney(projectedTotal)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Dias restantes:</span>
+                            <span class="text-white">${remainingDays} dias</span>
+                        </div>
+                        <div class="mt-3 p-3 rounded-lg ${status === 'ok' ? 'bg-emerald-500/10 border border-emerald-500/30' : status === 'alerta' ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-red-500/10 border border-red-500/30'}">
+                            <p class="text-sm ${status === 'ok' ? 'text-emerald-400' : status === 'alerta' ? 'text-yellow-400' : 'text-red-400'}">
+                                ${status === 'ok' ? '✓ Você está dentro do orçamento' : status === 'alerta' ? '⚠️ Atenção: Projeção acima do limite' : '❌ Orçamento estourado'}
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+            
+            // Sugestão para próximo mês
+            const suggested = currentMonthExpenses * 1.1; // 10% a mais que o atual
+            document.getElementById('suggestedBudget').textContent = `R$ ${formatMoney(suggested)}`;
+        }
+
+        function renderInvestmentTips(income, expense, balance) {
+            const container = document.getElementById('investmentTips');
+            const content = document.getElementById('investmentContent');
+            
+            if (income === 0) {
+                container.classList.add('hidden');
                 return;
             }
-            try {
-                await db.collection('users').doc(currentUser.uid).update({
-                    wallet: userData.wallet,
-                    lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                console.log("✅ Dados salvos na nuvem!");
-            } catch (error) {
-                console.error("Erro ao salvar:", error);
-                localStorage.setItem('finance_pro_backup', JSON.stringify(userData));
+            
+            container.classList.remove('hidden');
+            const savings = income - expense;
+            const savingsRate = income > 0 ? (savings / income) * 100 : 0;
+            
+            let tips = [];
+            
+            if (savingsRate < 10) {
+                tips.push('🔴 <b>Urgente:</b> Você está economizando menos de 10%. Tente cortar gastos supérfluos.');
+                tips.push('💡 <b>Dica:</b> Siga a regra 50/30/20 - 50% necessidades, 30% desejos, 20% poupança.');
+            } else if (savingsRate < 20) {
+                tips.push('🟡 <b>Bom:</b> Economia em crescimento. Meta: chegar a 20%.');
+                tips.push('📈 <b>Sugestão:</b> Automatize a transferência de 10% do salário para investimentos.');
+            } else {
+                tips.push('🟢 <b>Excelente!</b> Você economiza mais de 20%. Está no caminho certo.');
             }
+            
+            if (balance > 5000) {
+                tips.push('💰 <b>Oportunidade:</b> Você tem R$ ' + formatMoney(balance) + '. Considere investir 40% em CDBs e 20% em Tesouro Selic.');
+            }
+            
+            if (expense > income * 0.5) {
+                tips.push('⚠️ <b>Alerta:</b> Gastos fixos consomem mais de 50% da renda. Tente negociar dívidas ou reduzir contratos.');
+            }
+            
+            content.innerHTML = tips.map(t => `<p>${t}</p>`).join('');
         }
 
-        // AUTH FUNCTIONS
+        function renderMonthlyHistory() {
+            const container = document.getElementById('monthlyHistory');
+            const history = userData.wallet.monthlyHistory || {};
+            const months = Object.keys(history).sort().reverse();
+            
+            if (months.length === 0) {
+                container.innerHTML = '<p class="text-slate-500 text-sm">Nenhum histórico anterior (os dados começam a ser salvos no próximo mês)</p>';
+                return;
+            }
+            
+            container.innerHTML = months.map(m => {
+                const data = history[m];
+                const [year, month] = m.split('-');
+                const monthName = new Date(year, month - 1).toLocaleString('pt-BR', { month: 'long' });
+                
+                return `
+                    <div class="glass p-4 rounded-xl border border-slate-700 flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-white capitalize">${monthName} ${year}</p>
+                            <p class="text-xs text-slate-400">Orçamento: R$ ${formatMoney(data.budget)}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-rose-400 font-bold">-R$ ${formatMoney(data.expense)}</p>
+                            <p class="text-emerald-400 text-sm">Economia: R$ ${formatMoney(data.savings)}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderRecentTransactions() {
+            const container = document.getElementById('recentTransactions');
+            const recent = [...userData.wallet.transactions]
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 10);
+            
+            if (recent.length === 0) {
+                container.innerHTML = '<p class="text-slate-500 text-center py-8">Nenhuma movimentação</p>';
+                return;
+            }
+            
+            container.innerHTML = recent.map(t => {
+                const cat = userData.wallet.categories.find(c => c.id === t.category);
+                return `
+                    <div class="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full ${t.type === 'income' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'} flex items-center justify-center">
+                                <i class="fas ${t.type === 'income' ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-white">${t.description}</p>
+                                <p class="text-xs text-slate-400">${cat?.name} • ${new Date(t.date).toLocaleDateString('pt-BR')}</p>
+                            </div>
+                        </div>
+                        <span class="font-bold ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${t.type === 'income' ? '+' : '-'} R$ ${formatMoney(t.amount)}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // IA CHAT
+        function toggleAIChat() {
+            document.getElementById('aiChatModal').classList.toggle('hidden');
+        }
+
+        function askAI(question) {
+            document.getElementById('aiInput').value = question;
+            sendAIMessage();
+        }
+
+        function sendAIMessage() {
+            const input = document.getElementById('aiInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            addAIMessage(text, 'user');
+            input.value = '';
+            
+            // Processa resposta da IA
+            setTimeout(() => {
+                const response = generateAIResponse(text);
+                addAIMessage(response, 'bot');
+            }, 500);
+        }
+
+        function addAIMessage(text, sender) {
+            const container = document.getElementById('aiMessages');
+            const div = document.createElement('div');
+            div.className = `ai-message ai-${sender}`;
+            div.innerHTML = text;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function generateAIResponse(input) {
+            const lower = input.toLowerCase();
+            const now = new Date();
+            const w = userData.wallet;
+            
+            // Calcula estatísticas
+            const currentMonthTrans = w.transactions.filter(t => {
+                const d = new Date(t.date);
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            });
+            
+            const income = currentMonthTrans.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+            const expense = currentMonthTrans.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+            const balance = income - expense;
+            
+            if (lower.includes('gasto') || lower.includes('análise')) {
+                const topCategory = getTopExpenseCategory();
+                return `📊 <b>Análise do mês:</b><br><br>
+                • Receitas: R$ ${formatMoney(income)}<br>
+                • Despesas: R$ ${formatMoney(expense)}<br>
+                • Saldo: R$ ${formatMoney(balance)}<br><br>
+                ${topCategory ? `Maior gasto: <b>${topCategory.name}</b> (R$ ${formatMoney(topCategory.amount)})` : ''}<br><br>
+                ${expense > income ? '⚠️ <b>Alerta:</b> Você está gastando mais que recebe!' : '✅ <b>Parabéns:</b> Suas finanças estão equilibradas.'}`;
+            }
+            
+            if (lower.includes('economizar') || lower.includes('economia')) {
+                if (balance < 0) {
+                    return `💡 <b>Plano de Economia:</b><br><br>
+                    1. <b>Imediato:</b> Cancele assinaturas não usadas<br>
+                    2. <b>Alimentação:</b> Reduza delivery, faça marmitas<br>
+                    3. <b>Transporte:</b> Use transporte público ou carona<br>
+                    4. <b>Lazer:</b> Busque opções gratuitas (parques, bibliotecas)<br><br>
+                    Meta: Economizar 20% da renda (R$ ${formatMoney(income * 0.2)})`;
+                } else {
+                    return `🎉 <b>Você já está economizando R$ ${formatMoney(balance)}!</b><br><br>
+                    Mantenha assim e invista:<br>
+                    • 50% em Reserva de Emergência (Tesouro Selic)<br>
+                    • 30% em CDBs com liquidez diária<br>
+                    • 20% em ETFs (BOVA11) para longo prazo`;
+                }
+            }
+            
+            if (lower.includes('investir') || lower.includes('investimento')) {
+                const totalBalance = w.transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0) - 
+                                    w.transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+                
+                if (totalBalance < 1000) {
+                    return `⏳ <b>Antes de investir:</b><br><br>
+                    1. Junte R$ 2.000 de reserva de emergência<br>
+                    2. Pague dívidas com juros >10% ao ano<br>
+                    3. Comece com poupança/Tesouro Selic<br><br>
+                    Você tem R$ ${formatMoney(totalBalance)}. Faltam R$ ${formatMoney(Math.max(0, 2000 - totalBalance))} para começar.`;
+                } else {
+                    return `📈 <b>Portfólio recomendado:</b><br><br>
+                    Com R$ ${formatMoney(totalBalance)}:<br>
+                    • <b>40%</b> (R$ ${formatMoney(totalBalance * 0.4)}) - Tesouro Selic (segurança)<br>
+                    • <b>30%</b> (R$ ${formatMoney(totalBalance * 0.3)}) - CDBs 100%+ CDI (liquidez)<br>
+                    • <b>20%</b> (R$ ${formatMoney(totalBalance * 0.2)}) - ETFs Bolsa (crescimento)<br>
+                    • <b>10%</b> (R$ ${formatMoney(totalBalance * 0.1)}) - Cripto ou Internacional<br><br>
+                    ⚠️ Nunca invista o que precisa em curto prazo!`;
+                }
+            }
+            
+            if (lower.includes('meta') || lower.includes('objetivo')) {
+                return `🎯 <b>Metas sugeridas:</b><br><br>
+                1. <b>Curto prazo (1 ano):</b> Reserva de 6 meses de despesas<br>
+                2. <b>Médio prazo (5 anos):</b> R$ ${formatMoney(income * 12 * 5 * 0.2)} em investimentos<br>
+                3. <b>Longo prazo:</b> Independência financeira (25x gastos anuais)<br><br>
+                Para atingir suas metas, mantenha a taxa de economia acima de 20%.`;
+            }
+            
+            return `👋 <b>Olá!</b> Sou seu assistente financeiro.<br><br>
+            Posso ajudar com:<br>
+            • Análise de gastos ("Analise meus gastos")<br>
+            • Dicas de economia ("Como economizar?")<br>
+            • Investimentos ("Onde investir?")<br>
+            • Metas financeiras ("Quero juntar dinheiro")<br><br>
+            O que gostaria de saber?`;
+        }
+
+        function getTopExpenseCategory() {
+            const now = new Date();
+            const spending = {};
+            userData.wallet.transactions.forEach(t => {
+                const d = new Date(t.date);
+                if (t.type === 'expense' && d.getMonth() === now.getMonth()) {
+                    spending[t.category] = (spending[t.category] || 0) + t.amount;
+                }
+            });
+            
+            const sorted = Object.entries(spending).sort((a, b) => b[1] - a[1]);
+            if (sorted.length > 0) {
+                const cat = userData.wallet.categories.find(c => c.id === sorted[0][0]);
+                return { name: cat?.name || 'Outros', amount: sorted[0][1] };
+            }
+            return null;
+        }
+
+        // FUNÇÕES DE FORMULÁRIO
         function setAuthMode(mode) {
             authMode = mode;
             document.getElementById('tab-login').className = mode === 'login' ? 'flex-1 pb-2 text-center font-bold text-indigo-400 border-b-2 border-indigo-500' : 'flex-1 pb-2 text-center text-slate-400 border-b-2 border-transparent';
@@ -326,21 +1027,13 @@
 
         async function handleAuth(e) {
             e.preventDefault();
-            if (!auth) {
-                showError("Firebase não inicializado. Verifique sua conexão.");
-                return;
-            }
+            if (!auth) return showError("Sistema offline");
 
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPassword').value;
             const name = document.getElementById('userFullName').value;
             
-            const btn = document.getElementById('authButton');
-            const spinner = document.getElementById('btnSpinner');
-            const text = document.getElementById('btnText');
-            
-            text.classList.add('hidden');
-            spinner.classList.remove('hidden');
+            document.getElementById('btnSpinner').classList.remove('hidden');
             
             try {
                 if (authMode === 'login') {
@@ -352,33 +1045,29 @@
                     await db.collection('users').doc(cred.user.uid).set(userData);
                 }
             } catch (error) {
+                document.getElementById('btnSpinner').classList.add('hidden');
                 showError(translateError(error.message));
-                text.classList.remove('hidden');
-                spinner.classList.add('hidden');
             }
         }
 
         function authWithGoogle() {
             if (!auth) return;
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(error => {
-                showError(translateError(error.message));
-            });
+            auth.signInWithPopup(provider).catch(error => showError(error.message));
         }
 
         function showError(msg) {
-            const errorDiv = document.getElementById('errorMsg');
-            errorDiv.textContent = msg;
-            errorDiv.classList.remove('hidden');
-            setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+            const div = document.getElementById('errorMsg');
+            div.textContent = msg;
+            div.classList.remove('hidden');
+            setTimeout(() => div.classList.add('hidden'), 5000);
         }
 
         function translateError(msg) {
-            if (msg.includes('auth/invalid-credential')) return 'Email ou senha incorretos';
-            if (msg.includes('auth/user-not-found')) return 'Usuário não encontrado';
-            if (msg.includes('auth/email-already-in-use')) return 'Email já cadastrado';
-            if (msg.includes('auth/weak-password')) return 'Senha muito fraca (mínimo 6 caracteres)';
-            if (msg.includes('auth/invalid-email')) return 'Email inválido';
+            if (msg.includes('invalid-credential')) return 'Email ou senha incorretos';
+            if (msg.includes('user-not-found')) return 'Usuário não encontrado';
+            if (msg.includes('email-already-in-use')) return 'Email já cadastrado';
+            if (msg.includes('weak-password')) return 'Senha fraca (mínimo 6 caracteres)';
             return msg;
         }
 
@@ -386,86 +1075,13 @@
             isOfflineMode = true;
             document.getElementById('authScreen').classList.add('hidden');
             document.getElementById('mainApp').classList.remove('hidden');
-            document.getElementById('displayUserName').textContent = 'Offline';
-            
-            // Carrega do localStorage se existir
-            const saved = localStorage.getItem('finance_pro_backup');
-            if (saved) userData = JSON.parse(saved);
+            checkMonthlyReset();
             updateUI();
         }
 
         function logout() {
-            if (isOfflineMode) {
-                location.reload();
-            } else if (auth) {
-                auth.signOut();
-            }
-        }
-
-        // UI FUNCTIONS
-        function updateUI() {
-            const w = userData.wallet;
-            
-            const totalIncome = w.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-            const totalExpense = w.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            w.bankBalance = totalIncome - totalExpense;
-            
-            const now = new Date();
-            const currentMonthExpenses = w.transactions.filter(t => {
-                const d = new Date(t.date);
-                return t.type === 'expense' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-            }).reduce((sum, t) => sum + t.amount, 0);
-            
-            const available = w.monthlyBudgetLimit - currentMonthExpenses;
-            
-            document.getElementById('bankBalance').textContent = `R$ ${formatMoney(w.bankBalance)}`;
-            document.getElementById('monthlyBudget').textContent = `R$ ${formatMoney(available)}`;
-            
-            const percent = w.monthlyBudgetLimit > 0 ? (currentMonthExpenses / w.monthlyBudgetLimit) * 100 : 0;
-            document.getElementById('budgetBar').style.width = `${Math.min(percent, 100)}%`;
-            
-            renderCategories();
-        }
-
-        function renderCategories() {
-            const now = new Date();
-            const container = document.getElementById('budgetCategoriesList');
-            const spending = {};
-            
-            userData.wallet.transactions.forEach(t => {
-                const d = new Date(t.date);
-                if (t.type === 'expense' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
-                    spending[t.category] = (spending[t.category] || 0) + t.amount;
-                }
-            });
-            
-            container.innerHTML = userData.wallet.categories.map(c => {
-                const spent = spending[c.id] || 0;
-                const percent = c.limit > 0 ? (spent / c.limit) * 100 : 0;
-                const remaining = c.limit - spent;
-                
-                return `
-                    <div class="glass p-4 rounded-xl border border-slate-700 relative group">
-                        <button onclick="openEditCategory('${c.id}')" class="absolute top-3 right-3 w-8 h-8 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white flex items-center justify-center transition opacity-0 group-hover:opacity-100">
-                            <i class="fas fa-edit text-sm"></i>
-                        </button>
-                        <div class="flex items-center gap-2 mb-2">
-                            <div class="w-3 h-3 rounded-full bg-${c.color}-500"></div>
-                            <span class="font-bold text-white">${c.name}</span>
-                        </div>
-                        <div class="flex justify-between text-sm mb-2">
-                            <span class="text-slate-400">Gasto: <span class="text-white font-bold">R$ ${formatMoney(spent)}</span></span>
-                            <span class="text-slate-400">Limite: <span class="text-indigo-400 font-bold">R$ ${formatMoney(c.limit)}</span></span>
-                        </div>
-                        <div class="w-full bg-slate-700 rounded-full h-2">
-                            <div class="h-full rounded-full ${percent > 100 ? 'bg-red-500' : 'bg-' + c.color + '-500'}" style="width: ${Math.min(percent, 100)}%"></div>
-                        </div>
-                        <p class="text-xs mt-1 ${remaining < 0 ? 'text-red-400' : 'text-slate-500'}">
-                            ${remaining < 0 ? `Estourou em R$ ${formatMoney(Math.abs(remaining))}` : `Restam R$ ${formatMoney(remaining)}`}
-                        </p>
-                    </div>
-                `;
-            }).join('');
+            if (isOfflineMode) location.reload();
+            else if (auth) auth.signOut();
         }
 
         function openEditCategory(id) {
@@ -475,10 +1091,6 @@
             document.getElementById('editCategoryName').value = cat.name;
             document.getElementById('editCategoryLimit').value = cat.limit;
             document.getElementById('editCategoryModal').classList.remove('hidden');
-        }
-
-        function closeEditCategoryModal() {
-            document.getElementById('editCategoryModal').classList.add('hidden');
         }
 
         async function saveCategoryEdit() {
@@ -492,8 +1104,8 @@
             if (index !== -1) {
                 userData.wallet.categories[index].name = name;
                 userData.wallet.categories[index].limit = limit;
-                await saveToCloud();
-                closeEditCategoryModal();
+                await saveData();
+                document.getElementById('editCategoryModal').classList.add('hidden');
                 updateUI();
             }
         }
@@ -506,9 +1118,7 @@
             document.getElementById('transDate').valueAsDate = new Date();
             
             const grid = document.getElementById('categorySelection');
-            const cats = userData.wallet.categories;
-            
-            grid.innerHTML = cats.map(c => `
+            grid.innerHTML = userData.wallet.categories.map(c => `
                 <button type="button" onclick="selectTransCategory('${c.id}', this)" class="cat-select p-3 rounded-xl border border-slate-700 bg-slate-800 hover:border-indigo-500 transition text-left flex items-center gap-2">
                     <div class="w-3 h-3 rounded-full bg-${c.color}-500"></div>
                     <span class="text-sm text-slate-300">${c.name}</span>
@@ -548,7 +1158,7 @@
             });
             
             closeTransactionModal();
-            await saveToCloud();
+            await saveData();
             updateUI();
         }
 
@@ -557,10 +1167,15 @@
             document.getElementById('budgetLimitInput').value = userData.wallet.monthlyBudgetLimit || '';
         }
 
+        function useSuggestedBudget() {
+            const text = document.getElementById('suggestedBudget').textContent.replace('R$ ', '').replace('.', '').replace(',', '.');
+            document.getElementById('budgetLimitInput').value = parseFloat(text) || 0;
+        }
+
         async function saveBudgetLimit() {
             const val = parseFloat(document.getElementById('budgetLimitInput').value) || 0;
             userData.wallet.monthlyBudgetLimit = val;
-            await saveToCloud();
+            await saveData();
             document.getElementById('budgetLimitModal').classList.add('hidden');
             updateUI();
         }
@@ -589,7 +1204,7 @@
             document.getElementById('categoryModal').classList.add('hidden');
             document.getElementById('newCatName').value = '';
             document.getElementById('newCatLimit').value = '';
-            await saveToCloud();
+            await saveData();
             updateUI();
         }
 
