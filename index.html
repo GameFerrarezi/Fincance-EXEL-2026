@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Finance Pro - Sua Planilha Inteligente</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Pro</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -11,583 +11,242 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
-        
-        * {
-            font-family: 'Inter', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        
-        body {
-            overflow-x: hidden;
-            background: #0f172a;
-            color: #e2e8f0;
-        }
-        
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-        }
-        
-        .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.3);
-        }
-        
-        .excel-table {
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-        
-        .excel-table th {
-            background: #1e293b;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-        }
-        
-        .excel-table td, .excel-table th {
-            border-bottom: 1px solid #334155;
-            padding: 12px;
-            text-align: left;
-        }
-        
-        .excel-table tr:hover td {
-            background: rgba(99, 102, 241, 0.05);
-        }
-        
-        .positive { color: #34d399; }
-        .negative { color: #f87171; }
-        .neutral { color: #94a3b8; }
-        
-        .slide-up {
-            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        
-        @keyframes slideUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 4px;
-        }
-        
-        .input-glow:focus {
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
-        }
-        
-        .loading-spinner {
-            border: 3px solid rgba(255,255,255,0.1);
-            border-radius: 50%;
-            border-top: 3px solid #6366f1;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .sync-indicator {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(30, 41, 59, 0.9);
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            font-size: 12px;
-            color: #94a3b8;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .sync-indicator.syncing {
-            color: #6366f1;
-        }
-        
-        .sync-indicator.online {
-            color: #10b981;
-            border-color: rgba(16, 185, 129, 0.3);
-        }
+        body { background: #0f172a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.1); }
+        .mono { font-family: monospace; }
+        .slide-up { animation: slideUp 0.4s ease; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
-<body class="min-h-screen safe-area">
+<body class="min-h-screen">
 
-    <!-- TELA DE LOGIN/CADASTRO -->
+    <!-- SUAS CREDENCIAIS DO FIREBASE -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBdXhpd8x26ji9F0CmBUkJ-7ob-yj7jQ1A",
+            authDomain: "finance-exel.firebaseapp.com",
+            projectId: "finance-exel",
+            storageBucket: "finance-exel.firebasestorage.app",
+            messagingSenderId: "924115609258",
+            appId: "1:924115609258:web:7af2244e403c02b52f52d3"
+        };
+
+        let auth = null;
+        let db = null;
+        let currentUser = null;
+        let isOfflineMode = false;
+
+        // Tenta conectar no Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log("✅ Firebase conectado!");
+        } catch (e) {
+            console.error("❌ Erro Firebase:", e);
+            isOfflineMode = true;
+        }
+    </script>
+
+    <!-- TELA DE LOGIN -->
     <div id="authScreen" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center p-6">
         <div class="max-w-md w-full">
-            <div class="text-center mb-8 slide-up">
-                <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl shadow-2xl shadow-indigo-500/30">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl">
                     <i class="fas fa-wallet text-white"></i>
                 </div>
-                <h1 class="text-3xl font-bold text-white mb-2">Finance Pro</h1>
-                <p class="text-slate-400">Seus dados na nuvem. Acesse de qualquer lugar.</p>
+                <h1 class="text-3xl font-bold text-white">Finance Pro</h1>
+                <p class="text-slate-400 mt-2">Sincronização na nuvem ativada</p>
             </div>
 
-            <div id="loginForm" class="glass-panel rounded-3xl p-8 slide-up border border-slate-700">
+            <div class="glass rounded-3xl p-8 slide-up">
                 <div class="flex gap-4 mb-6 border-b border-slate-700 pb-4">
-                    <button onclick="toggleAuthMode('login')" id="tab-login" class="flex-1 pb-2 text-center font-bold text-indigo-400 border-b-2 border-indigo-500 transition">Entrar</button>
-                    <button onclick="toggleAuthMode('register')" id="tab-register" class="flex-1 pb-2 text-center font-medium text-slate-400 border-b-2 border-transparent hover:text-slate-300 transition">Criar Conta</button>
+                    <button onclick="setAuthMode('login')" id="tab-login" class="flex-1 pb-2 text-center font-bold text-indigo-400 border-b-2 border-indigo-500">Entrar</button>
+                    <button onclick="setAuthMode('register')" id="tab-register" class="flex-1 pb-2 text-center text-slate-400 border-b-2 border-transparent">Criar Conta</button>
                 </div>
+
+                <div id="errorMsg" class="hidden mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm"></div>
 
                 <form onsubmit="handleAuth(event)" class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-2">Email</label>
-                        <input type="email" id="authEmail" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 focus:outline-none input-glow" placeholder="seu@email.com">
+                        <label class="block text-sm text-slate-300 mb-2">Email</label>
+                        <input type="email" id="authEmail" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none" placeholder="seu@email.com">
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-2">Senha</label>
-                        <input type="password" id="authPassword" required minlength="6" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 focus:outline-none input-glow" placeholder="••••••••">
+                        <label class="block text-sm text-slate-300 mb-2">Senha</label>
+                        <input type="password" id="authPassword" required minlength="6" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none" placeholder="••••••••">
                     </div>
 
                     <div id="nameField" class="hidden">
-                        <label class="block text-sm font-medium text-slate-300 mb-2">Seu Nome</label>
-                        <input type="text" id="userFullName" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 focus:outline-none input-glow" placeholder="Como quer ser chamado?">
+                        <label class="block text-sm text-slate-300 mb-2">Seu Nome</label>
+                        <input type="text" id="userFullName" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none" placeholder="Como quer ser chamado?">
                     </div>
 
-                    <button type="submit" id="authButton" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition transform hover:scale-[1.02] flex items-center justify-center gap-2">
-                        <span>Entrar</span>
-                        <div id="authLoading" class="loading-spinner hidden"></div>
+                    <button type="submit" id="authButton" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <span id="btnText">Entrar</span>
+                        <i id="btnSpinner" class="fas fa-circle-notch fa-spin hidden"></i>
                     </button>
                 </form>
 
-                <div class="mt-6 text-center">
-                    <button onclick="authWithGoogle()" class="w-full py-3 border border-slate-600 hover:border-slate-500 rounded-xl text-slate-300 font-medium transition flex items-center justify-center gap-2">
+                <div class="mt-6 space-y-3">
+                    <button onclick="authWithGoogle()" class="w-full py-3 border border-slate-600 hover:border-slate-500 rounded-xl text-slate-300 transition flex items-center justify-center gap-2">
                         <i class="fab fa-google text-red-400"></i> Continuar com Google
                     </button>
-                </div>
-
-                <div class="mt-6 text-center text-xs text-slate-500">
-                    <i class="fas fa-shield-alt text-emerald-500 mr-1"></i> 
-                    Dados criptografados e sincronizados automaticamente
+                    
+                    <button onclick="continueOffline()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-400 text-sm">
+                        Usar sem conta (offline)
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- APP PRINCIPAL -->
-    <div id="mainApp" class="hidden min-h-screen flex flex-col">
-        
-        <!-- HEADER -->
-        <header class="glass-panel sticky top-0 z-40 border-b border-slate-800">
-            <div class="max-w-7xl mx-auto px-4 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                            <i class="fas fa-chart-line text-white"></i>
-                        </div>
-                        <div>
-                            <h1 class="font-bold text-lg text-white">Finance Pro</h1>
-                            <p class="text-xs text-slate-400">Olá, <span id="displayUserName">Usuário</span></p>
-                        </div>
+    <div id="mainApp" class="hidden min-h-screen flex-col">
+        <header class="glass sticky top-0 z-40 border-b border-slate-800 p-4">
+            <div class="max-w-7xl mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white"></i>
                     </div>
-                    
-                    <div class="flex items-center gap-3">
-                        <button onclick="toggleAIChat()" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-purple-400 transition relative">
-                            <i class="fas fa-robot"></i>
-                            <span class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900"></span>
-                        </button>
-                        <button onclick="exportToExcel()" class="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm text-slate-300 transition">
-                            <i class="fas fa-file-excel text-green-500"></i> Excel
-                        </button>
-                        <button onclick="logout()" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-red-900/30 flex items-center justify-center text-slate-400 hover:text-red-400 transition" title="Sair">
-                            <i class="fas fa-sign-out-alt"></i>
-                        </button>
+                    <div>
+                        <h1 class="font-bold text-lg text-white">Finance Pro</h1>
+                        <p class="text-xs text-slate-400">Olá, <span id="displayUserName">Usuário</span> 
+                            <span id="cloudStatus" class="ml-2 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] hidden">☁️ Nuvem</span>
+                        </p>
                     </div>
                 </div>
+                <button onclick="logout()" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-red-900/30 flex items-center justify-center text-slate-400 hover:text-red-400 transition">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
             </div>
         </header>
 
-        <!-- CONTEÚDO -->
         <main class="flex-1 max-w-7xl mx-auto w-full p-4 space-y-6 pb-24">
-            
-            <!-- CARDS PRINCIPAIS (3 COLUNAS) -->
+            <!-- Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- SALDO BANCÁRIO REAL -->
-                <div class="glass-panel rounded-2xl p-6 card-hover border-l-4 border-blue-500">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <p class="text-slate-400 text-sm font-medium uppercase tracking-wider">Saldo na Conta</p>
-                            <h2 id="bankBalance" class="text-3xl font-bold text-white mono mt-1">R$ 0,00</h2>
-                        </div>
-                        <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
-                            <i class="fas fa-university text-xl"></i>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 text-sm text-slate-400 mt-4">
-                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                        Dinheiro real disponível
-                    </div>
+                <div class="glass rounded-2xl p-6 border-l-4 border-blue-500">
+                    <p class="text-slate-400 text-sm uppercase">Saldo na Conta</p>
+                    <h2 id="bankBalance" class="text-3xl font-bold text-white mono mt-2">R$ 0,00</h2>
                 </div>
-
-                <!-- ORÇAMENTO MENSAL -->
-                <div class="glass-panel rounded-2xl p-6 card-hover border-l-4 border-purple-500">
-                    <div class="flex justify-between items-start mb-2">
+                
+                <div class="glass rounded-2xl p-6 border-l-4 border-purple-500">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-slate-400 text-sm font-medium uppercase tracking-wider">Posso Gastar este Mês</p>
-                            <h2 id="monthlyBudget" class="text-3xl font-bold text-white mono mt-1">R$ 0,00</h2>
+                            <p class="text-slate-400 text-sm uppercase">Posso Gastar</p>
+                            <h2 id="monthlyBudget" class="text-3xl font-bold text-white mono mt-2">R$ 0,00</h2>
                         </div>
-                        <button onclick="editBudgetLimit()" class="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 hover:bg-purple-500/30 transition">
-                            <i class="fas fa-edit text-xl"></i>
+                        <button onclick="editBudgetLimit()" class="text-purple-400 hover:text-purple-300">
+                            <i class="fas fa-edit"></i>
                         </button>
                     </div>
                     <div class="mt-4">
-                        <div class="flex justify-between text-xs text-slate-400 mb-1">
-                            <span>Usado: <span id="budgetUsed" class="text-white">R$ 0,00</span></span>
-                            <span id="budgetPercent">0%</span>
-                        </div>
                         <div class="w-full bg-slate-700 rounded-full h-2">
-                            <div id="budgetBar" class="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            <div id="budgetBar" class="h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- ECONOMIA/META -->
-                <div class="glass-panel rounded-2xl p-6 card-hover border-l-4 border-emerald-500">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <p class="text-slate-400 text-sm font-medium uppercase tracking-wider">Economia do Mês</p>
-                            <h2 id="monthSavings" class="text-3xl font-bold text-white mono mt-1">R$ 0,00</h2>
-                        </div>
-                        <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                            <i class="fas fa-piggy-bank text-xl"></i>
-                        </div>
+                <div class="glass rounded-2xl p-6 border-l-4 border-emerald-500">
+                    <p class="text-slate-400 text-sm uppercase">Economia</p>
+                    <h2 id="monthSavings" class="text-3xl font-bold text-white mono mt-2">R$ 0,00</h2>
+                </div>
+            </div>
+
+            <!-- Botões -->
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="openTransactionModal('income')" class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl hover:bg-emerald-500/20 transition text-left">
+                    <div class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-3">
+                        <i class="fas fa-arrow-down"></i>
                     </div>
-                    <div class="flex items-center gap-2 text-sm text-emerald-400 mt-4">
+                    <p class="font-bold text-emerald-400">Recebi Dinheiro</p>
+                </button>
+                
+                <button onclick="openTransactionModal('expense')" class="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl hover:bg-rose-500/20 transition text-left">
+                    <div class="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 mb-3">
                         <i class="fas fa-arrow-up"></i>
-                        <span id="savingsRate">0%</span> da renda
                     </div>
-                </div>
-            </div>
-
-            <!-- ALERTA INTELIGENTE -->
-            <div id="smartAlert" class="hidden glass-panel rounded-xl p-4 border border-yellow-500/30 bg-yellow-500/10">
-                <div class="flex items-start gap-3">
-                    <i class="fas fa-lightbulb text-yellow-500 text-xl mt-1"></i>
-                    <div>
-                        <h4 class="font-bold text-yellow-400 text-sm mb-1">Análise Inteligente</h4>
-                        <p id="alertText" class="text-slate-300 text-sm leading-relaxed"></p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ABAS -->
-            <div class="flex gap-2 border-b border-slate-800 overflow-x-auto custom-scrollbar">
-                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active px-6 py-3 text-sm font-medium text-indigo-400 border-b-2 border-indigo-500 whitespace-nowrap">
-                    <i class="fas fa-home mr-2"></i>Dashboard
-                </button>
-                <button onclick="switchTab('transactions')" id="tab-transactions" class="tab-btn px-6 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap">
-                    <i class="fas fa-table mr-2"></i>Movimentações
-                </button>
-                <button onclick="switchTab('budget')" id="tab-budget" class="tab-btn px-6 py-3 text-sm font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap">
-                    <i class="fas fa-sliders-h mr-2"></i>Orçamento
+                    <p class="font-bold text-rose-400">Gastei Dinheiro</p>
                 </button>
             </div>
 
-            <!-- CONTEÚDO DAS ABAS -->
-            
-            <!-- DASHBOARD -->
-            <div id="view-dashboard" class="space-y-6">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="glass-panel rounded-2xl p-6">
-                        <h3 class="font-bold text-white mb-6 flex items-center gap-2">
-                            <i class="fas fa-chart-pie text-indigo-500"></i> Distribuição de Gastos
-                        </h3>
-                        <div class="relative h-64">
-                            <canvas id="expenseChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="glass-panel rounded-2xl p-6">
-                        <h3 class="font-bold text-white mb-6">Registrar Movimentação</h3>
-                        <div class="grid grid-cols-2 gap-4">
-                            <button onclick="openTransactionModal('income')" class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl hover:bg-emerald-500/20 transition text-left group">
-                                <div class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-3 group-hover:scale-110 transition">
-                                    <i class="fas fa-arrow-down"></i>
-                                </div>
-                                <p class="font-bold text-emerald-400">Recebi Dinheiro</p>
-                                <p class="text-xs text-slate-400 mt-1">Aumenta saldo bancário</p>
-                            </button>
-                            
-                            <button onclick="openTransactionModal('expense')" class="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl hover:bg-rose-500/20 transition text-left group">
-                                <div class="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 mb-3 group-hover:scale-110 transition">
-                                    <i class="fas fa-arrow-up"></i>
-                                </div>
-                                <p class="font-bold text-rose-400">Gastei Dinheiro</p>
-                                <p class="text-xs text-slate-400 mt-1">Diminui ambos os saldos</p>
-                            </button>
-                        </div>
-
-                        <div class="mt-6 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-sm text-slate-400">Limite Mensal Definido:</span>
-                                <button onclick="editBudgetLimit()" class="text-xs text-indigo-400 hover:text-indigo-300">
-                                    <i class="fas fa-edit mr-1"></i>Alterar
-                                </button>
-                            </div>
-                            <p id="displayBudgetLimit" class="text-2xl font-bold text-white mono">R$ 0,00</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="glass-panel rounded-2xl p-6">
-                    <h3 class="font-bold text-white mb-4">Últimas Movimentações</h3>
-                    <div id="recentTransactions" class="space-y-3"></div>
-                </div>
-            </div>
-
-            <!-- TABELA -->
-            <div id="view-transactions" class="hidden space-y-4">
-                <div class="flex justify-between items-center">
-                    <div class="flex gap-2">
-                        <input type="text" id="searchTable" placeholder="Pesquisar..." class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none" oninput="filterTable()">
-                        <select id="filterType" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none" onchange="filterTable()">
-                            <option value="all">Todos</option>
-                            <option value="income">Entradas</option>
-                            <option value="expense">Saídas</option>
-                        </select>
-                    </div>
-                    <button onclick="exportToExcel()" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-white text-sm font-medium transition">
-                        <i class="fas fa-download mr-2"></i>Excel
+            <!-- Categorias -->
+            <div class="glass rounded-2xl p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-white">Limite por Categoria</h3>
+                    <button onclick="openAddCategory()" class="px-3 py-1.5 bg-indigo-600 rounded-lg text-white text-sm">
+                        <i class="fas fa-plus"></i> Nova
                     </button>
                 </div>
-
-                <div class="glass-panel rounded-2xl overflow-hidden overflow-x-auto custom-scrollbar">
-                    <table class="w-full excel-table text-sm">
-                        <thead>
-                            <tr>
-                                <th class="text-slate-400 font-medium">Data</th>
-                                <th class="text-slate-400 font-medium">Descrição</th>
-                                <th class="text-slate-400 font-medium">Categoria</th>
-                                <th class="text-slate-400 font-medium text-right">Valor</th>
-                                <th class="text-slate-400 font-medium text-center">Tipo</th>
-                                <th class="text-slate-400 font-medium text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="transactionsTableBody"></tbody>
-                    </table>
-                </div>
+                <div id="budgetCategoriesList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             </div>
-
-            <!-- ORÇAMENTO -->
-            <div id="view-budget" class="hidden space-y-6">
-                <div class="glass-panel rounded-2xl p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <div>
-                            <h3 class="font-bold text-white text-lg">Limite Mensal por Categoria</h3>
-                            <p class="text-slate-400 text-sm">Clique no ícone de editar para alterar limites</p>
-                        </div>
-                        <button onclick="openAddCategory()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium transition">
-                            <i class="fas fa-plus mr-2"></i>Nova Categoria
-                        </button>
-                    </div>
-
-                    <div id="budgetCategoriesList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Categorias injetadas -->
-                    </div>
-                </div>
-            </div>
-
         </main>
     </div>
 
-    <!-- MODAIS -->
-
-    <!-- Modal Transação -->
+    <!-- Modais -->
     <div id="transactionModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="glass-panel rounded-2xl p-6 w-full max-w-md slide-up border border-slate-700">
-            <div class="flex justify-between items-center mb-6">
-                <h3 id="transModalTitle" class="text-xl font-bold text-white">Nova Entrada</h3>
-                <button onclick="closeTransactionModal()" class="text-slate-400 hover:text-white">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-
+        <div class="glass rounded-2xl p-6 w-full max-w-md slide-up border border-slate-700">
+            <h3 id="transModalTitle" class="text-xl font-bold text-white mb-4">Registrar</h3>
             <form onsubmit="saveTransaction(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Valor (R$)</label>
-                    <input type="number" id="transAmount" step="0.01" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-2xl font-bold mono focus:border-indigo-500 focus:outline-none input-glow" placeholder="0,00">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Descrição</label>
-                    <input type="text" id="transDesc" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 focus:outline-none" placeholder="Ex: Salário, Aluguel...">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Categoria</label>
-                    <div class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar" id="categorySelection"></div>
-                    <input type="hidden" id="transCategory" required>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Data</label>
-                    <input type="date" id="transDate" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 focus:outline-none">
-                </div>
-
-                <button type="submit" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition">
-                    Confirmar
-                </button>
+                <input type="number" id="transAmount" step="0.01" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-2xl font-bold mono focus:border-indigo-500 outline-none" placeholder="R$ 0,00">
+                <input type="text" id="transDesc" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none" placeholder="Descrição">
+                <div id="categorySelection" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto"></div>
+                <input type="hidden" id="transCategory" required>
+                <input type="date" id="transDate" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none">
+                <button type="submit" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl">Confirmar</button>
+                <button type="button" onclick="closeTransactionModal()" class="w-full py-3 border border-slate-600 text-slate-300 rounded-xl">Cancelar</button>
             </form>
         </div>
     </div>
 
-    <!-- Modal Limite Geral -->
     <div id="budgetLimitModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="glass-panel rounded-2xl p-6 w-full max-w-md slide-up border border-slate-700">
-            <h3 class="text-xl font-bold text-white mb-2">Definir Limite Mensal Geral</h3>
-            <p class="text-slate-400 text-sm mb-6">Quanto você pode gastar este mês no total?</p>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Valor do Limite (R$)</label>
-                    <input type="number" id="budgetLimitInput" step="0.01" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-2xl font-bold mono focus:border-indigo-500 focus:outline-none input-glow" placeholder="0,00">
-                </div>
-                
-                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                    <p class="text-xs text-slate-400 mb-2">Sugestão baseada na média:</p>
-                    <button onclick="setSuggestedBudget()" class="text-sm text-indigo-400 hover:text-indigo-300 font-medium">
-                        Usar média dos últimos 3 meses: <span id="suggestedBudget">R$ 0,00</span>
-                    </button>
-                </div>
-
-                <div class="flex gap-3 pt-4">
-                    <button onclick="closeBudgetLimitModal()" class="flex-1 py-3 border border-slate-600 hover:border-slate-500 rounded-xl text-slate-300 font-medium transition">Cancelar</button>
-                    <button onclick="saveBudgetLimit()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold transition">Salvar</button>
-                </div>
-            </div>
+        <div class="glass rounded-2xl p-6 w-full max-w-md slide-up border border-slate-700">
+            <h3 class="text-xl font-bold text-white mb-4">Limite Mensal Geral</h3>
+            <input type="number" id="budgetLimitInput" step="0.01" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-2xl font-bold mono focus:border-indigo-500 outline-none mb-4" placeholder="0,00">
+            <button onclick="saveBudgetLimit()" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl">Salvar</button>
         </div>
     </div>
 
-    <!-- Modal Editar Categoria Específica -->
     <div id="editCategoryModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="glass-panel rounded-2xl p-6 w-full max-w-md slide-up border border-slate-700">
-            <h3 class="text-xl font-bold text-white mb-2">Editar Categoria</h3>
-            <p class="text-slate-400 text-sm mb-6">Altere o nome e o limite desta categoria</p>
-            
+        <div class="glass rounded-2xl p-6 w-full max-w-md slide-up border border-slate-700">
+            <h3 class="text-xl font-bold text-white mb-4">Editar Categoria</h3>
             <input type="hidden" id="editCategoryId">
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Nome da Categoria</label>
-                    <input type="text" id="editCategoryName" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 focus:outline-none" placeholder="Nome">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Limite Mensal (R$)</label>
-                    <input type="number" id="editCategoryLimit" step="0.01" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-xl font-bold mono focus:border-indigo-500 focus:outline-none input-glow" placeholder="0,00">
-                </div>
-
-                <div class="flex gap-3 pt-4">
-                    <button onclick="closeEditCategoryModal()" class="flex-1 py-3 border border-slate-600 hover:border-slate-500 rounded-xl text-slate-300 font-medium transition">Cancelar</button>
-                    <button onclick="saveCategoryEdit()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold transition">Salvar Alterações</button>
-                </div>
+            <input type="text" id="editCategoryName" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none mb-4" placeholder="Nome">
+            <input type="number" id="editCategoryLimit" step="0.01" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold mono focus:border-indigo-500 outline-none mb-4" placeholder="Limite R$">
+            <div class="flex gap-3">
+                <button onclick="closeEditCategoryModal()" class="flex-1 py-3 border border-slate-600 text-slate-300 rounded-xl">Cancelar</button>
+                <button onclick="saveCategoryEdit()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Salvar</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Nova Categoria -->
     <div id="categoryModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div class="glass-panel rounded-2xl p-6 w-full max-w-md slide-up border border-slate-700">
-            <h3 class="text-xl font-bold text-white mb-6">Nova Categoria</h3>
-            
+        <div class="glass rounded-2xl p-6 w-full max-w-md slide-up border border-slate-700">
+            <h3 class="text-xl font-bold text-white mb-4">Nova Categoria</h3>
             <form onsubmit="saveCategory(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Nome</label>
-                    <input type="text" id="newCatName" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 focus:outline-none" placeholder="Ex: Academia">
+                <input type="text" id="newCatName" required placeholder="Nome" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none">
+                <input type="number" id="newCatLimit" step="0.01" required placeholder="Limite R$" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 outline-none">
+                <div class="flex gap-2">
+                    <button type="button" onclick="selectCatColor('red')" class="color-btn w-10 h-10 rounded-full bg-red-500 ring-2 ring-offset-2 ring-offset-slate-800 ring-transparent" data-color="red"></button>
+                    <button type="button" onclick="selectCatColor('blue')" class="color-btn w-10 h-10 rounded-full bg-blue-500 ring-2 ring-offset-2 ring-offset-slate-800 ring-indigo-500" data-color="blue"></button>
+                    <button type="button" onclick="selectCatColor('green')" class="color-btn w-10 h-10 rounded-full bg-emerald-500 ring-2 ring-offset-2 ring-offset-slate-800 ring-transparent" data-color="green"></button>
+                    <button type="button" onclick="selectCatColor('yellow')" class="color-btn w-10 h-10 rounded-full bg-yellow-500 ring-2 ring-offset-2 ring-offset-slate-800 ring-transparent" data-color="yellow"></button>
+                    <button type="button" onclick="selectCatColor('purple')" class="color-btn w-10 h-10 rounded-full bg-purple-500 ring-2 ring-offset-2 ring-offset-slate-800 ring-transparent" data-color="purple"></button>
                 </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Limite Mensal (R$)</label>
-                    <input type="number" id="newCatLimit" step="0.01" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-indigo-500 focus:outline-none" placeholder="0,00">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Cor</label>
-                    <div class="flex gap-3 flex-wrap">
-                        <button type="button" onclick="selectCatColor('red')" class="color-btn w-10 h-10 rounded-full bg-red-500 hover:scale-110 transition ring-2 ring-offset-2 ring-offset-slate-800 ring-transparent" data-color="red"></button>
-                        <button type="button" onclick="selectCatColor('blue')" class="color-btn w-10 h-10 rounded-full bg-blue-500 hover:scale-110 transition ring-2 ring-offset-2 ring-offset-slate-800 ring-transparent" data-color="blue"></button>
-                        <button type="button" onclick="selectCatColor('green')" class="color-btn w-10 h-10 rounded-full bg-emerald-500 hover:scale-110 transition ring-2 ring-offset-2 ring-offset-slate-800 ring-transparent" data-color="green"></button>
-                        <button type="button" onclick="selectCatColor('yellow')" class="color-btn w-10 h-10 rounded-full bg-yellow-500 hover:scale-110 transition ring-2 ring-offset-2 ring-offset-slate-800 ring-transparent" data-color="yellow"></button>
-                        <button type="button" onclick="selectCatColor('purple')" class="color-btn w-10 h-10 rounded-full bg-purple-500 hover:scale-110 transition ring-2 ring-offset-2 ring-offset-slate-800 ring-indigo-500" data-color="purple"></button>
-                        <button type="button" onclick="selectCatColor('pink')" class="color-btn w-10 h-10 rounded-full bg-pink-500 hover:scale-110 transition ring-2 ring-offset-2 ring-offset-slate-800 ring-transparent" data-color="pink"></button>
-                    </div>
-                    <input type="hidden" id="newCatColor" value="purple">
-                </div>
-
-                <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold transition mt-4">
-                    Criar Categoria
-                </button>
+                <input type="hidden" id="newCatColor" value="blue">
+                <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl">Criar</button>
             </form>
         </div>
-    </div>
-
-    <!-- Indicador de Sync -->
-    <div id="syncIndicator" class="sync-indicator hidden">
-        <i class="fas fa-cloud"></i>
-        <span id="syncText">Sincronizado</span>
     </div>
 
     <script>
-        // CONFIGURAÇÃO FIREBASE - SUBSTITUA COM SUAS CREDENCIAIS
-const firebaseConfig = {
-  apiKey: "AIzaSyBdXhpd8x26ji9F0CmBUkJ-7ob-yj7jQ1A",
-  authDomain: "finance-exel.firebaseapp.com",
-  projectId: "finance-exel",
-  storageBucket: "finance-exel.firebasestorage.app",
-  messagingSenderId: "924115609258",
-  appId: "1:924115609258:web:7af2244e403c02b52f52d3",
-  measurementId: "G-QSD03X1Y4Q"
-};
-        
-        // Inicializa Firebase (modo compatível)
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        
-        // VARIÁVEIS GLOBAIS
-        let currentUser = null;
+        // DADOS
         let userData = {
-            name: '',
+            name: 'Usuário',
             wallet: {
                 bankBalance: 0,
                 monthlyBudgetLimit: 0,
@@ -601,30 +260,84 @@ const firebaseConfig = {
                 transactions: []
             }
         };
-        let currentChart = null;
-        let unsubscribe = null;
-
-        // AUTHENTICATION
         let authMode = 'login';
+        let currentChart = null;
 
-        function toggleAuthMode(mode) {
+        // AUTH LISTENERS
+        if (auth) {
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    document.getElementById('authScreen').classList.add('hidden');
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    document.getElementById('displayUserName').textContent = user.displayName || user.email.split('@')[0];
+                    document.getElementById('cloudStatus').classList.remove('hidden');
+                    
+                    // Carrega dados do Firestore
+                    loadUserData(user.uid);
+                }
+            });
+        }
+
+        async function loadUserData(uid) {
+            if (!db) return;
+            try {
+                const doc = await db.collection('users').doc(uid).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    userData = { ...userData, ...data };
+                    if (data.name) userData.name = data.name;
+                } else {
+                    // Primeira vez - cria documento
+                    await db.collection('users').doc(uid).set(userData);
+                }
+                updateUI();
+            } catch (error) {
+                console.error("Erro ao carregar dados:", error);
+                showError("Erro ao carregar dados da nuvem. Verifique sua conexão.");
+            }
+        }
+
+        async function saveToCloud() {
+            if (!db || !currentUser) {
+                localStorage.setItem('finance_pro_backup', JSON.stringify(userData));
+                return;
+            }
+            try {
+                await db.collection('users').doc(currentUser.uid).update({
+                    wallet: userData.wallet,
+                    lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log("✅ Dados salvos na nuvem!");
+            } catch (error) {
+                console.error("Erro ao salvar:", error);
+                localStorage.setItem('finance_pro_backup', JSON.stringify(userData));
+            }
+        }
+
+        // AUTH FUNCTIONS
+        function setAuthMode(mode) {
             authMode = mode;
-            document.getElementById('tab-login').className = mode === 'login' ? 'flex-1 pb-2 text-center font-bold text-indigo-400 border-b-2 border-indigo-500 transition' : 'flex-1 pb-2 text-center font-medium text-slate-400 border-b-2 border-transparent hover:text-slate-300 transition';
-            document.getElementById('tab-register').className = mode === 'register' ? 'flex-1 pb-2 text-center font-bold text-indigo-400 border-b-2 border-indigo-500 transition' : 'flex-1 pb-2 text-center font-medium text-slate-400 border-b-2 border-transparent hover:text-slate-300 transition';
-            
+            document.getElementById('tab-login').className = mode === 'login' ? 'flex-1 pb-2 text-center font-bold text-indigo-400 border-b-2 border-indigo-500' : 'flex-1 pb-2 text-center text-slate-400 border-b-2 border-transparent';
+            document.getElementById('tab-register').className = mode === 'register' ? 'flex-1 pb-2 text-center font-bold text-indigo-400 border-b-2 border-indigo-500' : 'flex-1 pb-2 text-center text-slate-400 border-b-2 border-transparent';
             document.getElementById('nameField').classList.toggle('hidden', mode === 'login');
-            document.getElementById('authButton').querySelector('span').textContent = mode === 'login' ? 'Entrar' : 'Criar Conta';
+            document.getElementById('btnText').textContent = mode === 'login' ? 'Entrar' : 'Criar Conta';
         }
 
         async function handleAuth(e) {
             e.preventDefault();
+            if (!auth) {
+                showError("Firebase não inicializado. Verifique sua conexão.");
+                return;
+            }
+
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPassword').value;
             const name = document.getElementById('userFullName').value;
             
             const btn = document.getElementById('authButton');
-            const spinner = document.getElementById('authLoading');
-            const text = btn.querySelector('span');
+            const spinner = document.getElementById('btnSpinner');
+            const text = document.getElementById('btnText');
             
             text.classList.add('hidden');
             spinner.classList.remove('hidden');
@@ -635,128 +348,64 @@ const firebaseConfig = {
                 } else {
                     const cred = await auth.createUserWithEmailAndPassword(email, password);
                     await cred.user.updateProfile({ displayName: name });
-                    // Cria documento inicial no Firestore
-                    await db.collection('users').doc(cred.user.uid).set({
-                        name: name,
-                        wallet: userData.wallet,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    userData.name = name;
+                    await db.collection('users').doc(cred.user.uid).set(userData);
                 }
             } catch (error) {
-                alert('Erro: ' + error.message);
+                showError(translateError(error.message));
                 text.classList.remove('hidden');
                 spinner.classList.add('hidden');
             }
         }
 
         function authWithGoogle() {
+            if (!auth) return;
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(error => alert('Erro: ' + error.message));
+            auth.signInWithPopup(provider).catch(error => {
+                showError(translateError(error.message));
+            });
+        }
+
+        function showError(msg) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.textContent = msg;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+        }
+
+        function translateError(msg) {
+            if (msg.includes('auth/invalid-credential')) return 'Email ou senha incorretos';
+            if (msg.includes('auth/user-not-found')) return 'Usuário não encontrado';
+            if (msg.includes('auth/email-already-in-use')) return 'Email já cadastrado';
+            if (msg.includes('auth/weak-password')) return 'Senha muito fraca (mínimo 6 caracteres)';
+            if (msg.includes('auth/invalid-email')) return 'Email inválido';
+            return msg;
+        }
+
+        function continueOffline() {
+            isOfflineMode = true;
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('displayUserName').textContent = 'Offline';
+            
+            // Carrega do localStorage se existir
+            const saved = localStorage.getItem('finance_pro_backup');
+            if (saved) userData = JSON.parse(saved);
+            updateUI();
         }
 
         function logout() {
-            if (confirm('Deseja realmente sair?')) {
+            if (isOfflineMode) {
+                location.reload();
+            } else if (auth) {
                 auth.signOut();
             }
         }
 
-        // LISTENER DE AUTH
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                currentUser = user;
-                document.getElementById('authScreen').classList.add('hidden');
-                document.getElementById('mainApp').classList.remove('hidden');
-                document.getElementById('displayUserName').textContent = user.displayName || user.email.split('@')[0];
-                
-                // Carrega dados do Firestore em tempo real
-                loadUserData(user.uid);
-            } else {
-                currentUser = null;
-                document.getElementById('authScreen').classList.remove('hidden');
-                document.getElementById('mainApp').classList.add('hidden');
-                if (unsubscribe) unsubscribe();
-            }
-        });
-
-        // FIRESTORE - LOAD DATA
-        function loadUserData(uid) {
-            showSyncIndicator('Carregando...', true);
-            
-            unsubscribe = db.collection('users').doc(uid).onSnapshot(doc => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    userData.name = data.name || currentUser.displayName;
-                    userData.wallet = { ...userData.wallet, ...data.wallet };
-                    
-                    // Garante que categorias padrão existam se não houver customizadas
-                    if (!userData.wallet.categories || userData.wallet.categories.length === 0) {
-                        userData.wallet.categories = [
-                            { id: 'cat_1', name: 'Moradia', color: 'blue', limit: 0 },
-                            { id: 'cat_2', name: 'Alimentação', color: 'green', limit: 0 },
-                            { id: 'cat_3', name: 'Transporte', color: 'yellow', limit: 0 },
-                            { id: 'cat_4', name: 'Lazer', color: 'purple', limit: 0 },
-                            { id: 'cat_5', name: 'Saúde', color: 'red', limit: 0 },
-                        ];
-                    }
-                    
-                    updateUI();
-                    showSyncIndicator('Sincronizado', false);
-                } else {
-                    // Primeiro login, cria documento
-                    saveToFirestore();
-                }
-            }, error => {
-                console.error(error);
-                showSyncIndicator('Erro de conexão', false);
-            });
-        }
-
-        // FIRESTORE - SAVE
-        async function saveToFirestore() {
-            if (!currentUser) return;
-            
-            showSyncIndicator('Salvando...', true);
-            
-            try {
-                await db.collection('users').doc(currentUser.uid).update({
-                    wallet: userData.wallet,
-                    lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                showSyncIndicator('Sincronizado', false);
-            } catch (error) {
-                console.error("Erro ao salvar:", error);
-                showSyncIndicator('Erro ao salvar', false);
-            }
-        }
-
-        function showSyncIndicator(text, syncing) {
-            const indicator = document.getElementById('syncIndicator');
-            const textEl = document.getElementById('syncText');
-            const icon = indicator.querySelector('i');
-            
-            indicator.classList.remove('hidden');
-            textEl.textContent = text;
-            
-            if (syncing) {
-                indicator.classList.add('syncing');
-                indicator.classList.remove('online');
-                icon.className = 'fas fa-circle-notch fa-spin';
-            } else {
-                indicator.classList.remove('syncing');
-                indicator.classList.add('online');
-                icon.className = text.includes('Erro') ? 'fas fa-exclamation-circle text-red-400' : 'fas fa-check-circle';
-            }
-            
-            if (!syncing && !text.includes('Erro')) {
-                setTimeout(() => indicator.classList.add('hidden'), 3000);
-            }
-        }
-
-        // SISTEMA FINANCEIRO (mesma lógica de antes, mas salvando no Firestore)
+        // UI FUNCTIONS
         function updateUI() {
             const w = userData.wallet;
             
-            // Cálculos
             const totalIncome = w.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const totalExpense = w.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
             w.bankBalance = totalIncome - totalExpense;
@@ -767,60 +416,22 @@ const firebaseConfig = {
                 return t.type === 'expense' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
             }).reduce((sum, t) => sum + t.amount, 0);
             
-            w.currentMonthExpenses = currentMonthExpenses;
-            const availableBudget = w.monthlyBudgetLimit - currentMonthExpenses;
+            const available = w.monthlyBudgetLimit - currentMonthExpenses;
             
-            const monthlyIncome = w.transactions.filter(t => {
-                const d = new Date(t.date);
-                return t.type === 'income' && d.getMonth() === now.getMonth();
-            }).reduce((sum, t) => sum + t.amount, 0);
-            
-            const savings = monthlyIncome - currentMonthExpenses;
-            const savingsRate = monthlyIncome > 0 ? (savings / monthlyIncome) * 100 : 0;
-            
-            // Update UI
             document.getElementById('bankBalance').textContent = `R$ ${formatMoney(w.bankBalance)}`;
-            document.getElementById('monthlyBudget').textContent = `R$ ${formatMoney(availableBudget)}`;
-            document.getElementById('displayBudgetLimit').textContent = `R$ ${formatMoney(w.monthlyBudgetLimit)}`;
-            document.getElementById('budgetUsed').textContent = `R$ ${formatMoney(currentMonthExpenses)}`;
-            document.getElementById('monthSavings').textContent = `R$ ${formatMoney(savings)}`;
-            document.getElementById('savingsRate').textContent = `${savingsRate.toFixed(1)}%`;
+            document.getElementById('monthlyBudget').textContent = `R$ ${formatMoney(available)}`;
             
             const percent = w.monthlyBudgetLimit > 0 ? (currentMonthExpenses / w.monthlyBudgetLimit) * 100 : 0;
-            document.getElementById('budgetPercent').textContent = `${percent.toFixed(1)}%`;
             document.getElementById('budgetBar').style.width = `${Math.min(percent, 100)}%`;
             
-            const bar = document.getElementById('budgetBar');
-            bar.className = `h-2 rounded-full transition-all duration-500 ${percent > 100 ? 'bg-red-500' : percent > 80 ? 'bg-yellow-500' : 'bg-gradient-to-r from-emerald-400 to-emerald-600'}`;
-            
-            // Alertas
-            const alert = document.getElementById('smartAlert');
-            const text = document.getElementById('alertText');
-            
-            if (percent > 100) {
-                alert.classList.remove('hidden');
-                alert.className = 'glass-panel rounded-xl p-4 border border-red-500/30 bg-red-500/10 slide-up';
-                text.innerHTML = `<b>Alerta Crítico!</b> Você ultrapassou seu orçamento mensal em ${formatMoney(Math.abs(availableBudget))}. Pare os gastos imediatamente!`;
-            } else if (percent > 90) {
-                alert.classList.remove('hidden');
-                alert.className = 'glass-panel rounded-xl p-4 border border-yellow-500/30 bg-yellow-500/10 slide-up';
-                text.innerHTML = `<b>Atenção:</b> Você usou ${percent.toFixed(0)}% do orçamento. Sobram apenas ${formatMoney(availableBudget)}.`;
-            } else {
-                alert.classList.add('hidden');
-            }
-            
-            renderRecentTransactions();
-            renderTable();
-            renderBudgetCategories();
-            updateChart();
+            renderCategories();
         }
 
-        // CATEGORIAS COM EDIÇÃO CORRIGIDA
-        function renderBudgetCategories() {
+        function renderCategories() {
             const now = new Date();
             const container = document.getElementById('budgetCategoriesList');
-            
             const spending = {};
+            
             userData.wallet.transactions.forEach(t => {
                 const d = new Date(t.date);
                 if (t.type === 'expense' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
@@ -834,44 +445,35 @@ const firebaseConfig = {
                 const remaining = c.limit - spent;
                 
                 return `
-                    <div class="glass-panel p-5 rounded-xl border border-slate-700 relative group">
-                        <button onclick="openEditCategory('${c.id}')" class="absolute top-4 right-4 w-8 h-8 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white flex items-center justify-center transition opacity-0 group-hover:opacity-100" title="Editar categoria">
+                    <div class="glass p-4 rounded-xl border border-slate-700 relative group">
+                        <button onclick="openEditCategory('${c.id}')" class="absolute top-3 right-3 w-8 h-8 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-400 hover:text-white flex items-center justify-center transition opacity-0 group-hover:opacity-100">
                             <i class="fas fa-edit text-sm"></i>
                         </button>
-                        
-                        <div class="flex justify-between items-center mb-3 pr-8">
-                            <div class="flex items-center gap-3">
-                                <div class="w-3 h-3 rounded-full bg-${c.color}-500"></div>
-                                <span class="font-bold text-white text-lg">${c.name}</span>
-                            </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-3 h-3 rounded-full bg-${c.color}-500"></div>
+                            <span class="font-bold text-white">${c.name}</span>
                         </div>
-                        
-                        <div class="flex justify-between text-sm mb-3">
-                            <span class="text-slate-400">Gasto: <span class="text-white font-bold mono">R$ ${formatMoney(spent)}</span></span>
-                            <span class="text-slate-400">Limite: <span class="text-indigo-400 font-bold mono">R$ ${formatMoney(c.limit)}</span></span>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-400">Gasto: <span class="text-white font-bold">R$ ${formatMoney(spent)}</span></span>
+                            <span class="text-slate-400">Limite: <span class="text-indigo-400 font-bold">R$ ${formatMoney(c.limit)}</span></span>
                         </div>
-                        
-                        <div class="w-full bg-slate-700 rounded-full h-3 mb-2 overflow-hidden">
-                            <div class="h-full rounded-full transition-all duration-500 ${percent > 100 ? 'bg-red-500' : percent > 80 ? 'bg-yellow-500' : 'bg-' + c.color + '-500'}" style="width: ${Math.min(percent, 100)}%"></div>
+                        <div class="w-full bg-slate-700 rounded-full h-2">
+                            <div class="h-full rounded-full ${percent > 100 ? 'bg-red-500' : 'bg-' + c.color + '-500'}" style="width: ${Math.min(percent, 100)}%"></div>
                         </div>
-                        
-                        <p class="text-xs ${remaining < 0 ? 'text-red-400 font-bold' : 'text-slate-500'}">
-                            ${remaining < 0 ? `⚠️ Estourou em R$ ${formatMoney(Math.abs(remaining))}` : `✓ Restam R$ ${formatMoney(remaining)}`}
+                        <p class="text-xs mt-1 ${remaining < 0 ? 'text-red-400' : 'text-slate-500'}">
+                            ${remaining < 0 ? `Estourou em R$ ${formatMoney(Math.abs(remaining))}` : `Restam R$ ${formatMoney(remaining)}`}
                         </p>
                     </div>
                 `;
             }).join('');
         }
 
-        // FUNÇÃO DE EDITAR CATEGORIA (NOVA)
-        function openEditCategory(categoryId) {
-            const category = userData.wallet.categories.find(c => c.id === categoryId);
-            if (!category) return;
-            
-            document.getElementById('editCategoryId').value = categoryId;
-            document.getElementById('editCategoryName').value = category.name;
-            document.getElementById('editCategoryLimit').value = category.limit;
-            
+        function openEditCategory(id) {
+            const cat = userData.wallet.categories.find(c => c.id === id);
+            if (!cat) return;
+            document.getElementById('editCategoryId').value = id;
+            document.getElementById('editCategoryName').value = cat.name;
+            document.getElementById('editCategoryLimit').value = cat.limit;
             document.getElementById('editCategoryModal').classList.remove('hidden');
         }
 
@@ -884,24 +486,18 @@ const firebaseConfig = {
             const name = document.getElementById('editCategoryName').value.trim();
             const limit = parseFloat(document.getElementById('editCategoryLimit').value) || 0;
             
-            if (!name) {
-                alert('Digite um nome para a categoria');
-                return;
-            }
+            if (!name) return alert('Digite um nome');
             
             const index = userData.wallet.categories.findIndex(c => c.id === id);
             if (index !== -1) {
                 userData.wallet.categories[index].name = name;
                 userData.wallet.categories[index].limit = limit;
-                
-                await saveToFirestore();
+                await saveToCloud();
                 closeEditCategoryModal();
                 updateUI();
-                showToast('Categoria atualizada!');
             }
         }
 
-        // RESTANTE DAS FUNÇÕES (mantidas da versão anterior)
         function openTransactionModal(type) {
             document.getElementById('transactionModal').classList.remove('hidden');
             document.getElementById('transModalTitle').textContent = type === 'income' ? 'Registrar Entrada' : 'Registrar Saída';
@@ -913,13 +509,11 @@ const firebaseConfig = {
             const cats = userData.wallet.categories;
             
             grid.innerHTML = cats.map(c => `
-                <button type="button" onclick="selectTransCategory('${c.id}', this)" 
-                        class="cat-select p-3 rounded-xl border border-slate-700 bg-slate-800 hover:border-indigo-500 transition text-left flex items-center gap-2 group">
+                <button type="button" onclick="selectTransCategory('${c.id}', this)" class="cat-select p-3 rounded-xl border border-slate-700 bg-slate-800 hover:border-indigo-500 transition text-left flex items-center gap-2">
                     <div class="w-3 h-3 rounded-full bg-${c.color}-500"></div>
-                    <span class="text-sm text-slate-300 group-hover:text-white">${c.name}</span>
+                    <span class="text-sm text-slate-300">${c.name}</span>
                 </button>
             `).join('');
-            
             document.getElementById('transCategory').value = '';
         }
 
@@ -939,32 +533,23 @@ const firebaseConfig = {
 
         async function saveTransaction(e) {
             e.preventDefault();
-            
             const amount = parseFloat(document.getElementById('transAmount').value);
             const desc = document.getElementById('transDesc').value;
             const category = document.getElementById('transCategory').value;
             const date = document.getElementById('transDate').value;
             const type = document.getElementById('transModalTitle').textContent.includes('Entrada') ? 'income' : 'expense';
             
-            if (!category) {
-                alert('Selecione uma categoria');
-                return;
-            }
+            if (!category) return alert('Selecione uma categoria');
             
             userData.wallet.transactions.push({
                 id: Date.now().toString(),
-                type,
-                amount,
-                description: desc,
-                category,
-                date,
+                type, amount, description: desc, category, date,
                 timestamp: new Date().toISOString()
             });
             
             closeTransactionModal();
-            await saveToFirestore();
+            await saveToCloud();
             updateUI();
-            showToast(type === 'income' ? 'Entrada registrada!' : 'Gasto registrado!');
         }
 
         function editBudgetLimit() {
@@ -972,28 +557,12 @@ const firebaseConfig = {
             document.getElementById('budgetLimitInput').value = userData.wallet.monthlyBudgetLimit || '';
         }
 
-        function closeBudgetLimitModal() {
-            document.getElementById('budgetLimitModal').classList.add('hidden');
-        }
-
         async function saveBudgetLimit() {
             const val = parseFloat(document.getElementById('budgetLimitInput').value) || 0;
             userData.wallet.monthlyBudgetLimit = val;
-            await saveToFirestore();
-            closeBudgetLimitModal();
+            await saveToCloud();
+            document.getElementById('budgetLimitModal').classList.add('hidden');
             updateUI();
-            showToast('Limite mensal atualizado!');
-        }
-
-        function setSuggestedBudget() {
-            const avg = calculateAverageExpenses();
-            document.getElementById('budgetLimitInput').value = avg.toFixed(2);
-        }
-
-        function calculateAverageExpenses() {
-            const expenses = userData.wallet.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            const months = Math.max(1, Math.ceil(userData.wallet.transactions.length / 10));
-            return (expenses / months) || 3000;
         }
 
         function openAddCategory() {
@@ -1008,192 +577,25 @@ const firebaseConfig = {
 
         async function saveCategory(e) {
             e.preventDefault();
-            
             const name = document.getElementById('newCatName').value;
             const limit = parseFloat(document.getElementById('newCatLimit').value) || 0;
             const color = document.getElementById('newCatColor').value;
             
             userData.wallet.categories.push({
                 id: 'cat_' + Date.now(),
-                name,
-                color,
-                limit
+                name, color, limit
             });
             
             document.getElementById('categoryModal').classList.add('hidden');
             document.getElementById('newCatName').value = '';
             document.getElementById('newCatLimit').value = '';
-            
-            await saveToFirestore();
+            await saveToCloud();
             updateUI();
-            showToast('Categoria criada!');
-        }
-
-        function renderRecentTransactions() {
-            const container = document.getElementById('recentTransactions');
-            const recent = [...userData.wallet.transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-            
-            if (recent.length === 0) {
-                container.innerHTML = '<p class="text-slate-500 text-center py-8">Nenhuma movimentação ainda</p>';
-                return;
-            }
-            
-            container.innerHTML = recent.map(t => {
-                const cat = userData.wallet.categories.find(c => c.id === t.category);
-                return `
-                    <div class="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full ${t.type === 'income' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'} flex items-center justify-center">
-                                <i class="fas ${t.type === 'income' ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
-                            </div>
-                            <div>
-                                <p class="font-medium text-white">${t.description}</p>
-                                <p class="text-xs text-slate-400">${cat?.name} • ${new Date(t.date).toLocaleDateString('pt-BR')}</p>
-                            </div>
-                        </div>
-                        <span class="font-bold mono ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${t.type === 'income' ? '+' : '-'} R$ ${formatMoney(t.amount)}
-                        </span>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderTable() {
-            const tbody = document.getElementById('transactionsTableBody');
-            const sorted = [...userData.wallet.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
-            
-            tbody.innerHTML = sorted.map(t => {
-                const cat = userData.wallet.categories.find(c => c.id === t.category);
-                return `
-                    <tr class="group">
-                        <td class="text-slate-300">${new Date(t.date).toLocaleDateString('pt-BR')}</td>
-                        <td class="text-white font-medium">${t.description}</td>
-                        <td>
-                            <span class="px-2 py-1 rounded-full text-xs bg-${cat?.color || 'slate'}-500/20 text-${cat?.color || 'slate'}-300 border border-${cat?.color || 'slate'}-500/30">
-                                ${cat?.name || 'Sem categoria'}
-                            </span>
-                        </td>
-                        <td class="text-right mono font-bold ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${t.type === 'income' ? '+' : '-'} R$ ${formatMoney(t.amount)}
-                        </td>
-                        <td class="text-center">
-                            <span class="px-2 py-1 rounded text-xs ${t.type === 'income' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">
-                                ${t.type === 'income' ? 'Entrada' : 'Saída'}
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            <button onclick="deleteTransaction('${t.id}')" class="text-slate-500 hover:text-red-400 transition opacity-0 group-hover:opacity-100">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        async function deleteTransaction(id) {
-            if (!confirm('Excluir esta movimentação?')) return;
-            userData.wallet.transactions = userData.wallet.transactions.filter(t => t.id !== id);
-            await saveToFirestore();
-            updateUI();
-        }
-
-        function filterTable() {
-            const search = document.getElementById('searchTable').value.toLowerCase();
-            const type = document.getElementById('filterType').value;
-            const rows = document.querySelectorAll('#transactionsTableBody tr');
-            
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                const rowType = row.querySelector('td:nth-child(5)').textContent.includes('Entrada') ? 'income' : 'expense';
-                row.style.display = (text.includes(search) && (type === 'all' || rowType === type)) ? '' : 'none';
-            });
-        }
-
-        function exportToExcel() {
-            const data = userData.wallet.transactions.map(t => {
-                const cat = userData.wallet.categories.find(c => c.id === t.category);
-                return {
-                    Data: new Date(t.date).toLocaleDateString('pt-BR'),
-                    Descrição: t.description,
-                    Categoria: cat?.name || '',
-                    Tipo: t.type === 'income' ? 'Entrada' : 'Saída',
-                    Valor: t.amount
-                };
-            });
-            
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Movimentações');
-            XLSX.writeFile(wb, `Finance_Pro_${new Date().toISOString().split('T')[0]}.xlsx`);
-            showToast('Excel exportado!');
-        }
-
-        function updateChart() {
-            const ctx = document.getElementById('expenseChart').getContext('2d');
-            const now = new Date();
-            
-            const spending = {};
-            userData.wallet.transactions.forEach(t => {
-                if (t.type === 'expense' && new Date(t.date).getMonth() === now.getMonth()) {
-                    spending[t.category] = (spending[t.category] || 0) + t.amount;
-                }
-            });
-            
-            const labels = Object.keys(spending).map(id => {
-                const cat = userData.wallet.categories.find(c => c.id === id);
-                return cat?.name || 'Outros';
-            });
-            const data = Object.values(spending);
-            const colors = Object.keys(spending).map(id => {
-                const cat = userData.wallet.categories.find(c => c.id === id);
-                const map = { red: '#ef4444', blue: '#3b82f6', green: '#10b981', yellow: '#fbbf24', purple: '#a855f7', pink: '#ec4899' };
-                return map[cat?.color] || '#64748b';
-            });
-            
-            if (currentChart) currentChart.destroy();
-            
-            currentChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'right', labels: { color: '#94a3b8', boxWidth: 12, font: { size: 11 } } } },
-                    cutout: '70%'
-                }
-            });
-        }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => {
-                b.classList.remove('text-indigo-400', 'border-indigo-500');
-                b.classList.add('text-slate-400', 'border-transparent');
-            });
-            document.getElementById(`tab-${tab}`).classList.remove('text-slate-400', 'border-transparent');
-            document.getElementById(`tab-${tab}`).classList.add('text-indigo-400', 'border-indigo-500');
-            
-            document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
-            document.getElementById(`view-${tab}`).classList.remove('hidden');
-        }
-
-        function toggleAIChat() {
-            alert('Assistente IA - Em uma implementação completa, abriria o chat com integração à API do OpenAI analisando seus dados em tempo real.');
         }
 
         function formatMoney(value) {
             return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
-
-        function showToast(msg) {
-            const toast = document.createElement('div');
-            toast.className = 'fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl border border-slate-700 slide-up z-50 flex items-center gap-2';
-            toast.innerHTML = `<i class="fas fa-check-circle text-emerald-400"></i> ${msg}`;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
     </script>
 </body>
-
 </html>
